@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { Button, Input } from '@/admin/components/ui'
+import '@/admin/admin.css'
 
 export function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -16,7 +17,7 @@ export function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-orbit-bg flex">
+    <div className="admin-root min-h-screen bg-orbit-bg flex">
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-orbit-primary/10 blur-[120px] rounded-full" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[300px] bg-orbit-accent/8 blur-[100px] rounded-full" />

@@ -10,15 +10,15 @@ export function ClientFooter() {
             <div className="row g-4">
               <div className="col-lg-3">
                 <Link to="/">
-                  <h1 className="text-primary mb-0">SmartFood</h1>
-                  <p className="text-secondary mb-0">Fresh products</p>
+                  <h1 className="text-primary mb-0">Aurelia Smart Food</h1>
+                  <p className="text-secondary mb-0">Commerce de proximité</p>
                 </Link>
               </div>
               <div className="col-lg-6">
                 <div className="position-relative mx-auto">
-                  <input className="form-control border-0 w-100 py-3 px-4 rounded-pill" type="email" placeholder="Your Email" />
+                  <input className="form-control border-0 w-100 py-3 px-4 rounded-pill" type="email" placeholder="Votre email" />
                   <button type="submit" className="btn btn-primary border-0 border-secondary py-3 px-4 position-absolute rounded-pill text-white" style={{ top: 0, right: 0 }}>
-                    Subscribe Now
+                    S'inscrire
                   </button>
                 </div>
               </div>
@@ -35,40 +35,44 @@ export function ClientFooter() {
           <div className="row g-5">
             <div className="col-lg-3 col-md-6">
               <div className="footer-item">
-                <h4 className="text-light mb-3">Why People Like us!</h4>
-                <p className="mb-4">Fresh, organic products delivered to your door. Quality you can taste, prices you'll love.</p>
-                <a href="#" className="btn border-secondary py-2 px-4 rounded-pill text-primary">Read More</a>
+                <h4 className="text-light mb-3">Pourquoi nous choisir ?</h4>
+                <p className="mb-4">Aurelia Smart Food vous propose un service de proximité avec une sélection adaptée au quotidien.</p>
+                <a href="#" className="btn border-secondary py-2 px-4 rounded-pill text-primary">Découvrir</a>
               </div>
             </div>
             <div className="col-lg-3 col-md-6">
               <div className="d-flex flex-column text-start footer-item">
-                <h4 className="text-light mb-3">Shop Info</h4>
-                <a className="btn-link" href="#">About Us</a>
-                <Link className="btn-link" to="/contact">Contact Us</Link>
-                <a className="btn-link" href="#">Privacy Policy</a>
-                <a className="btn-link" href="#">Terms &amp; Condition</a>
-                <a className="btn-link" href="#">Return Policy</a>
-                <a className="btn-link" href="#">FAQs &amp; Help</a>
+                <h4 className="text-light mb-3">Informations</h4>
+                <a className="btn-link" href="#">À propos</a>
+                <Link className="btn-link" to="/contact">Contact</Link>
+                <a className="btn-link" href="#">Politique de confidentialité</a>
+                <a className="btn-link" href="#">Conditions générales</a>
+                <a className="btn-link" href="#">Politique de retour</a>
+                <a className="btn-link" href="#">FAQ</a>
               </div>
             </div>
             <div className="col-lg-3 col-md-6">
               <div className="d-flex flex-column text-start footer-item">
-                <h4 className="text-light mb-3">Account</h4>
-                <a className="btn-link" href="#">My Account</a>
-                <Link className="btn-link" to="/shop/1">Shop Details</Link>
-                <Link className="btn-link" to="/cart">Shopping Cart</Link>
-                <a className="btn-link" href="#">Wishlist</a>
-                <a className="btn-link" href="#">Order History</a>
+                <h4 className="text-light mb-3">Mon compte</h4>
+                <Link className="btn-link" to="/profile">Mon compte</Link>
+                <Link className="btn-link" to="/shop">Boutique</Link>
+                <Link className="btn-link" to="/cart">Panier</Link>
+                <a className="btn-link" href="#">Liste de souhaits</a>
+                <a className="btn-link" href="#">Historique des commandes</a>
               </div>
             </div>
             <div className="col-lg-3 col-md-6">
               <div className="footer-item">
                 <h4 className="text-light mb-3">Contact</h4>
-                <p>Address: 1429 Netus Rd, NY 48247</p>
-                <p>Email: contact@smartfood.com</p>
-                <p>Phone: +0123 4567 8910</p>
-                <p>Payment Accepted</p>
-                <img src="/fruitables/img/payment.png" className="img-fluid" alt="Payment methods" />
+                <p>Adresse : 123 avenue de l'Industrie, Tunis</p>
+                <p>Email : contact@aurelia-smartfood.com</p>
+                <p>Téléphone : +216 71 234 567</p>
+                <p className="mb-2">Paiements acceptés :</p>
+                <ul className="list-unstyled small mb-0 text-muted">
+                  <li>Cartes bancaires</li>
+                  <li>Mobile money</li>
+                  <li>Paiement à la livraison</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -81,11 +85,11 @@ export function ClientFooter() {
           <div className="row">
             <div className="col-md-6 text-center text-md-start mb-3 mb-md-0">
               <span className="text-light">
-                <Link to="/"><i className="fas fa-copyright text-light me-2"></i>SmartFood</Link>, All rights reserved.
+                <Link to="/"><i className="fas fa-copyright text-light me-2"></i>Aurelia Smart Food</Link>, Tous droits réservés.
               </span>
             </div>
             <div className="col-md-6 my-auto text-center text-md-end text-white">
-              Powered by <strong>React + Spring Boot</strong>
+              Propulsé par <strong>React + Spring Boot</strong>
             </div>
           </div>
         </div>

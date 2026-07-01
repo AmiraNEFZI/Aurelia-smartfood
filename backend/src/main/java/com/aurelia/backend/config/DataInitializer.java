@@ -56,7 +56,7 @@ public class DataInitializer implements CommandLineRunner {
                         + "Idéales pour les smoothies et les petits-déjeuners.")
                 .price(new BigDecimal("2.99"))
                 .stock(100)
-                .image("/fruitables/img/fruite-item-3.jpg")
+                .image("/assets/img/fruite-item-3.jpg")
                 .build(),
 
             Product.builder()
@@ -65,7 +65,7 @@ public class DataInitializer implements CommandLineRunner {
                         + "Source naturelle de vitamine C.")
                 .price(new BigDecimal("3.49"))
                 .stock(80)
-                .image("/fruitables/img/fruite-item-1.jpg")
+                .image("/assets/img/fruite-item-1.jpg")
                 .build(),
 
             Product.builder()
@@ -74,7 +74,7 @@ public class DataInitializer implements CommandLineRunner {
                         + "Parfaits en dessert ou en encas.")
                 .price(new BigDecimal("4.99"))
                 .stock(60)
-                .image("/fruitables/img/fruite-item-5.jpg")
+                .image("/assets/img/fruite-item-5.jpg")
                 .build(),
 
             Product.builder()
@@ -83,7 +83,7 @@ public class DataInitializer implements CommandLineRunner {
                         + "Récolté du jour, livré directement.")
                 .price(new BigDecimal("3.35"))
                 .stock(50)
-                .image("/fruitables/img/vegetable-item-2.jpg")
+                .image("/assets/img/vegetable-item-2.jpg")
                 .build(),
 
             Product.builder()
@@ -92,7 +92,7 @@ public class DataInitializer implements CommandLineRunner {
                         + "Idéales pour les salades et les antipasti.")
                 .price(new BigDecimal("3.99"))
                 .stock(70)
-                .image("/fruitables/img/vegetable-item-1.jpg")
+                .image("/assets/img/vegetable-item-1.jpg")
                 .build()
         );
 

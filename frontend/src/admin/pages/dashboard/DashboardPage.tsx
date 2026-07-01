@@ -6,7 +6,7 @@ import {
 import { motion } from 'framer-motion'
 import { Download, Plus, ExternalLink } from 'lucide-react'
 import { Button, Badge, Avatar, Card, CardHeader, CardBody, StatCard } from '@/admin/components/ui'
-import { statsData, revenueData, trafficData, transactions, activityFeed } from '@/admin/data/dashboard'
+import { statsData, revenueData, trafficData, transactions, driverActivity } from '@/admin/data/dashboard'
 import { cn } from '@/utils/cn'
 import type { Transaction } from '@/types'
 
@@ -37,16 +37,6 @@ function statusConfig(status: Transaction['status']) {
     failed:    { label: 'Failed',    variant: 'danger'  as const },
     refunded:  { label: 'Refunded',  variant: 'neutral' as const },
   }[status]
-}
-
-function activityColor(type: string) {
-  return {
-    success:   'bg-emerald-500',
-    upgrade:   'bg-orbit-primary',
-    info:      'bg-orbit-info',
-    milestone: 'bg-orbit-accent',
-    warning:   'bg-orbit-warning',
-  }[type] ?? 'bg-slate-500'
 }
 
 export function DashboardPage() {
@@ -155,15 +145,15 @@ export function DashboardPage() {
       {/* Transactions + Activity */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
-          <CardHeader title="Recent Transactions" subtitle={`${transactions.length} transactions this week`}
-            actions={<Button variant="ghost" size="sm" icon={<ExternalLink className="w-3 h-3" />} iconPosition="right">View all</Button>}
+          <CardHeader title="Recent Orders" subtitle="Live order history for admins"
+            actions={<Button variant="ghost" size="sm" icon={<ExternalLink className="w-3 h-3" />} iconPosition="right">View all orders</Button>}
           />
           <CardBody className="p-0 pt-2">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-orbit-border">
-                    {['Customer', 'Date', 'Type', 'Amount', 'Status'].map(col => (
+                    {['Order', 'Customer', 'Date', 'Delivery Type', 'Amount', 'Status'].map(col => (
                       <th key={col} className="text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider px-5 pb-3">{col}</th>
                     ))}
                   </tr>
@@ -171,6 +161,10 @@ export function DashboardPage() {
                 <tbody className="divide-y divide-orbit-border">
                   {transactions.map(tx => (
                     <tr key={tx.id} className="hover:bg-white/2 transition-colors">
+                      <td className="px-5 py-3">
+                        <p className="text-sm text-slate-200 font-medium">{tx.id}</p>
+                        <p className="text-xs text-slate-500">#{tx.id.split('-')[1]}</p>
+                      </td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <Avatar initials={tx.initials} size="sm" />
@@ -183,9 +177,7 @@ export function DashboardPage() {
                       <td className="px-5 py-3 text-sm text-slate-400 whitespace-nowrap">{tx.date}</td>
                       <td className="px-5 py-3 text-sm text-slate-400">{tx.type}</td>
                       <td className="px-5 py-3">
-                        <span className={cn('text-sm font-semibold', tx.amount < 0 ? 'text-red-400' : 'text-slate-100')}>
-                          {tx.amount < 0 ? '-' : '+'}${Math.abs(tx.amount).toLocaleString()}
-                        </span>
+                        <span className="text-sm font-semibold text-slate-100">${tx.amount.toLocaleString()}</span>
                       </td>
                       <td className="px-5 py-3">
                         <Badge variant={statusConfig(tx.status).variant} dot>{statusConfig(tx.status).label}</Badge>
@@ -199,21 +191,35 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Recent Activity" subtitle="Live updates"
+          <CardHeader title="Driver Sessions" subtitle="Latest delivery partner status"
             actions={<div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className="text-xs text-slate-500">Live</span></div>}
           />
-          <CardBody className="pt-2 space-y-0">
-            {activityFeed.map((item, i) => (
-              <motion.div key={item.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 + 0.3 }}
-                className="flex items-start gap-3 py-3 border-b border-orbit-border last:border-0"
+          <CardBody className="pt-2 space-y-3">
+            {driverActivity.map((driver, i) => (
+              <motion.div key={driver.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+                className="p-3 rounded-2xl bg-orbit-surface2 border border-orbit-border"
               >
-                <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0', activityColor(item.type))}>
-                  {item.initials}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar initials={driver.initials} size="sm" />
+                    <div>
+                      <p className="text-sm text-slate-100 font-semibold">{driver.name}</p>
+                      <p className="text-xs text-slate-500">{driver.route}</p>
+                    </div>
+                  </div>
+                  <Badge variant={driver.status === 'Active' ? 'success' : 'warning'}>{driver.status}</Badge>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-300 leading-relaxed">{item.text}</p>
-                  <p className="text-[11px] text-slate-600 mt-1">{item.time}</p>
+                <div className="grid grid-cols-2 gap-3 mt-3 text-[11px] text-slate-500">
+                  <div className="rounded-2xl bg-orbit-surface p-3">
+                    <p className="text-slate-300">Connected since</p>
+                    <p className="text-slate-100 font-semibold">{driver.connectedSince}</p>
+                  </div>
+                  <div className="rounded-2xl bg-orbit-surface p-3">
+                    <p className="text-slate-300">Session duration</p>
+                    <p className="text-slate-100 font-semibold">{driver.duration}</p>
+                  </div>
                 </div>
+                <p className="mt-3 text-[11px] text-slate-500">Last update: <span className="text-slate-400">{driver.lastActive}</span></p>
               </motion.div>
             ))}
           </CardBody>

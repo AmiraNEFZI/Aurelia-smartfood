@@ -19,7 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRole(Role role);
 
-    // Trouver les livreurs disponibles pour assignation
-    @Query("SELECT u FROM User u WHERE u.role = 'LIVREUR' AND u.statutLivreur = :statut")
+    // Trouver les livreurs disponibles — FIFO : trié par id ASC (le plus ancien = premier assigné)
+    @Query("SELECT u FROM User u WHERE u.role = 'LIVREUR' AND u.statutLivreur = :statut ORDER BY u.id ASC")
     List<User> findLivreursParStatut(StatutLivreur statut);
 }

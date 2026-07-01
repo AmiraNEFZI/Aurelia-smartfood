@@ -1,4 +1,4 @@
-import { DollarSign, Users, TrendingUp, Activity } from 'lucide-react'
+import { DollarSign, Users, Truck, MapPin } from 'lucide-react'
 import type { StatCardData, Transaction } from '@/types'
 
 export const revenueData = [
@@ -26,73 +26,72 @@ export const trafficData = [
 
 export const statsData: StatCardData[] = [
   {
-    id: 'revenue',
-    label: 'Total Revenue',
-    value: '$284,902',
-    change: 12.5,
-    changeLabel: 'vs last month',
-    icon: DollarSign,
+    id: 'orders',
+    label: 'Total Orders',
+    value: '1,242',
+    change: 14.2,
+    changeLabel: 'vs last week',
+    icon: Truck,
     color: 'primary',
     sparkData: [
-      { value: 42000 }, { value: 53000 }, { value: 48000 }, { value: 71000 },
-      { value: 64000 }, { value: 89000 }, { value: 108000 }, { value: 142000 },
+      { value: 152 }, { value: 168 }, { value: 174 }, { value: 188 },
+      { value: 196 }, { value: 212 }, { value: 242 }, { value: 280 },
     ],
   },
   {
-    id: 'users',
-    label: 'Active Users',
-    value: '14,293',
-    change: 8.2,
+    id: 'revenue',
+    label: 'Total Revenue',
+    value: '$1.62M',
+    change: 9.8,
     changeLabel: 'vs last month',
-    icon: Users,
+    icon: DollarSign,
     color: 'accent',
     sparkData: [
-      { value: 8200 }, { value: 9100 }, { value: 8800 }, { value: 10200 },
-      { value: 11000 }, { value: 12400 }, { value: 13100 }, { value: 14293 },
+      { value: 42 }, { value: 53 }, { value: 48 }, { value: 71 },
+      { value: 64 }, { value: 89 }, { value: 95 }, { value: 108 },
     ],
   },
   {
-    id: 'subscriptions',
-    label: 'Subscriptions',
-    value: '2,847',
-    change: 23.1,
+    id: 'delivery',
+    label: 'Delivery Revenue',
+    value: '$382K',
+    change: 12.4,
     changeLabel: 'vs last month',
-    icon: TrendingUp,
+    icon: MapPin,
     color: 'success',
     sparkData: [
-      { value: 1200 }, { value: 1400 }, { value: 1800 }, { value: 1900 },
-      { value: 2100 }, { value: 2300 }, { value: 2600 }, { value: 2847 },
+      { value: 18 }, { value: 21 }, { value: 22 }, { value: 25 },
+      { value: 28 }, { value: 31 }, { value: 34 }, { value: 38 },
     ],
   },
   {
-    id: 'churn',
-    label: 'Churn Rate',
-    value: '1.4%',
-    change: -0.3,
-    changeLabel: 'vs last month',
-    icon: Activity,
+    id: 'drivers',
+    label: 'Active Drivers',
+    value: '28',
+    change: 5.1,
+    changeLabel: 'vs last week',
+    icon: Users,
     color: 'warning',
     sparkData: [
-      { value: 2.1 }, { value: 1.9 }, { value: 2.0 }, { value: 1.8 },
-      { value: 1.7 }, { value: 1.6 }, { value: 1.5 }, { value: 1.4 },
+      { value: 18 }, { value: 19 }, { value: 20 }, { value: 22 },
+      { value: 23 }, { value: 25 }, { value: 27 }, { value: 28 },
     ],
   },
 ]
 
 export const transactions: Transaction[] = [
-  { id: '1', customer: 'Alex Chen', email: 'alex@acme.io', initials: 'AC', date: 'Jun 21, 2026', type: 'Subscription', amount: 299, status: 'completed' },
-  { id: '2', customer: 'Sarah Kim', email: 'sarah@pixel.co', initials: 'SK', date: 'Jun 21, 2026', type: 'Pro Upgrade', amount: 49, status: 'pending' },
-  { id: '3', customer: 'Marcus Webb', email: 'marcus@loop.dev', initials: 'MW', date: 'Jun 20, 2026', type: 'One-time', amount: 799, status: 'completed' },
-  { id: '4', customer: 'Priya Patel', email: 'priya@nova.io', initials: 'PP', date: 'Jun 20, 2026', type: 'Subscription', amount: 149, status: 'completed' },
-  { id: '5', customer: 'James Liu', email: 'james@drift.ai', initials: 'JL', date: 'Jun 19, 2026', type: 'Refund', amount: -99, status: 'refunded' },
-  { id: '6', customer: 'Emma Torres', email: 'emma@forge.com', initials: 'ET', date: 'Jun 19, 2026', type: 'Subscription', amount: 299, status: 'failed' },
-  { id: '7', customer: 'Daniel Park', email: 'daniel@stack.io', initials: 'DP', date: 'Jun 18, 2026', type: 'Enterprise', amount: 1499, status: 'completed' },
+  { id: 'OD-1021', customer: 'Karim Salah', email: 'karim@smartfood.tn', initials: 'KS', date: 'Jun 21, 2026', type: 'Grocery Delivery', amount: 128, status: 'completed' },
+  { id: 'OD-1018', customer: 'Yasmine Bouazizi', email: 'yasmine@aurelia.tn', initials: 'YB', date: 'Jun 21, 2026', type: 'Express Pickup', amount: 76, status: 'pending' },
+  { id: 'OD-1015', customer: 'Amine Trabelsi', email: 'amine@hendrix.tn', initials: 'AT', date: 'Jun 20, 2026', type: 'Home Delivery', amount: 199, status: 'completed' },
+  { id: 'OD-1012', customer: 'Mouna Jaziri', email: 'mouna@nectar.tn', initials: 'MJ', date: 'Jun 20, 2026', type: 'Grocery Delivery', amount: 54, status: 'completed' },
+  { id: 'OD-1009', customer: 'Sami Khlifi', email: 'sami@artisan.tn', initials: 'SK', date: 'Jun 19, 2026', type: 'Express Pickup', amount: 42, status: 'completed' },
+  { id: 'OD-1005', customer: 'Rania Ghali', email: 'rania@nova.tn', initials: 'RG', date: 'Jun 19, 2026', type: 'Home Delivery', amount: 173, status: 'completed' },
+  { id: 'OD-1001', customer: 'Nabil Fersi', email: 'nabil@loop.tn', initials: 'NF', date: 'Jun 18, 2026', type: 'Grocery Delivery', amount: 215, status: 'completed' },
 ]
 
-export const activityFeed = [
-  { id: '1', text: 'New enterprise deal closed with Acme Corp', time: '2 min ago', type: 'success', initials: 'AC' },
-  { id: '2', text: 'Sarah Kim upgraded to Pro plan', time: '18 min ago', type: 'upgrade', initials: 'SK' },
-  { id: '3', text: 'System maintenance scheduled for Sunday 2AM', time: '1 hour ago', type: 'info', initials: 'SY' },
-  { id: '4', text: 'Revenue milestone: $250K MRR reached', time: '3 hours ago', type: 'milestone', initials: 'MR' },
-  { id: '5', text: 'James Liu requested a refund', time: '5 hours ago', type: 'warning', initials: 'JL' },
+export const driverActivity = [
+  { id: '1', name: 'Salma Hamdi', initials: 'SH', status: 'Active', connectedSince: '2h 18m ago', duration: '2h 18m', lastActive: 'Online now', route: 'Tunis → La Marsa' },
+  { id: '2', name: 'Walid Jdid', initials: 'WJ', status: 'Suspended', connectedSince: '13h ago', duration: '1h 05m', lastActive: 'Suspended', route: 'Sfax — inactive' },
+  { id: '3', name: 'Meriem Ba', initials: 'MB', status: 'Active', connectedSince: '45m ago', duration: '45m', lastActive: 'Online now', route: 'Ariana → Carthage' },
+  { id: '4', name: 'Fares Mzoughi', initials: 'FM', status: 'Active', connectedSince: '1h 12m ago', duration: '1h 12m', lastActive: 'Online now', route: 'Bardo → Sidi Bouzid' },
 ]

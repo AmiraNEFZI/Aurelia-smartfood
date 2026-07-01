@@ -7,6 +7,8 @@ import {
   Settings,
   HelpCircle,
   BarChart3,
+  Package,
+  Truck,
 } from 'lucide-react'
 import type { NavSection } from '@/types'
 
@@ -36,6 +38,14 @@ export const navigation: NavSection[] = [
         children: [
           { label: 'Overview', href: '/admin/billing' },
           { label: 'Invoices', href: '/admin/billing' },
+        ],
+      },
+      {
+        label: 'Commerce',
+        icon: Package,
+        children: [
+          { label: 'Produits', href: '/admin/products/create' },
+          { label: 'Livreurs', href: '/admin/drivers/create' },
         ],
       },
     ],

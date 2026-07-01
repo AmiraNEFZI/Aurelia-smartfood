@@ -1,185 +1,183 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useCart } from '@/client/context/CartContext'
+import { productApi, resolveProductImage } from '@/client/services/api'
 
-const allProducts = [
-  { id: 1, name: 'Grapes', price: 4.99, img: '/fruitables/img/fruite-item-5.jpg', category: 'Fruits' },
-  { id: 2, name: 'Raspberries', price: 4.99, img: '/fruitables/img/fruite-item-2.jpg', category: 'Fruits' },
-  { id: 3, name: 'Apricots', price: 4.99, img: '/fruitables/img/fruite-item-4.jpg', category: 'Fruits' },
-  { id: 4, name: 'Banana', price: 4.99, img: '/fruitables/img/fruite-item-3.jpg', category: 'Fruits' },
-  { id: 5, name: 'Oranges', price: 4.99, img: '/fruitables/img/fruite-item-1.jpg', category: 'Fruits' },
-  { id: 6, name: 'Strawberry', price: 4.99, img: '/fruitables/img/fruite-item-6.jpg', category: 'Fruits' },
-  { id: 7, name: 'Tomatoes', price: 3.99, img: '/fruitables/img/vegetable-item-1.jpg', category: 'Vegetables' },
-  { id: 8, name: 'Broccoli', price: 3.35, img: '/fruitables/img/vegetable-item-2.jpg', category: 'Vegetables' },
-  { id: 9, name: 'Big Banana', price: 2.99, img: '/fruitables/img/vegetable-item-3.png', category: 'Vegetables' },
-  { id: 10, name: 'Potatoes', price: 2.99, img: '/fruitables/img/vegetable-item-5.jpg', category: 'Vegetables' },
-  { id: 11, name: 'Green Pepper', price: 3.49, img: '/fruitables/img/vegetable-item-4.jpg', category: 'Vegetables' },
-  { id: 12, name: 'Eggplant', price: 3.99, img: '/fruitables/img/vegetable-item-6.jpg', category: 'Vegetables' },
-]
+interface Product {
+  id: number
+  name: string
+  description: string
+  price: number
+  stock: number
+  image: string
+}
 
-const featuredProducts = [
-  { id: 1, name: 'Big Banana', price: 2.99, oldPrice: 4.11, img: '/fruitables/img/featur-1.jpg', rating: 4 },
-  { id: 2, name: 'Raspberry', price: 2.99, oldPrice: 4.11, img: '/fruitables/img/featur-2.jpg', rating: 4 },
-  { id: 3, name: 'Apple', price: 2.99, oldPrice: 4.11, img: '/fruitables/img/featur-3.jpg', rating: 4 },
+const FALLBACK: Product[] = [
+  { id: 1, name: 'Bananes', description: 'Bananes fraîches, riches en potassium.', price: 2.99, stock: 100, image: '/fruitables/img/fruite-item-3.jpg' },
+  { id: 2, name: 'Orange Navel', description: 'Oranges juteuses et sucrées.', price: 3.49, stock: 80, image: '/fruitables/img/fruite-item-1.jpg' },
+  { id: 3, name: 'Raisins Muscat', description: 'Raisins doux et parfumés.', price: 4.99, stock: 60, image: '/fruitables/img/fruite-item-5.jpg' },
+  { id: 4, name: 'Brocoli', description: 'Brocoli riche en fibres et vitamines.', price: 3.35, stock: 50, image: '/fruitables/img/vegetable-item-2.jpg' },
+  { id: 5, name: 'Tomates Cerises', description: 'Tomates rouges, parfaites pour vos salades.', price: 3.99, stock: 70, image: '/fruitables/img/vegetable-item-1.jpg' },
 ]
 
 export function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')
-  const [maxPrice, setMaxPrice] = useState(500)
+  const [maxPrice, setMaxPrice] = useState(20)
+  const [loading, setLoading] = useState(true)
+  const [addedId, setAddedId] = useState<number | null>(null)
+  const { addItem } = useCart()
 
-  const filtered = allProducts.filter(p =>
+  useEffect(() => {
+    productApi.getAll()
+      .then(res => setProducts(res.data))
+      .catch(() => setProducts(FALLBACK))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) && p.price <= maxPrice
   )
+
+  const truncate = (text: string, max = 100) =>
+    text.length > max ? `${text.slice(0, max).trimEnd()}...` : text
+
+  const handleAddToCart = (product: Product) => {
+    addItem({
+      id: product.id,
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      img: resolveProductImage(product.image),
+      category: 'Produit',
+    })
+    setAddedId(product.id)
+    setTimeout(() => setAddedId(null), 1500)
+  }
 
   return (
     <>
       {/* Page Header */}
       <div className="container-fluid page-header py-5">
-        <h1 className="text-center text-white display-6">Shop</h1>
+        <h1 className="text-center text-white display-6">Boutique</h1>
         <ol className="breadcrumb justify-content-center mb-0">
-          <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-          <li className="breadcrumb-item active text-white">Shop</li>
+          <li className="breadcrumb-item"><Link to="/">Accueil</Link></li>
+          <li className="breadcrumb-item active text-white">Boutique</li>
         </ol>
       </div>
 
-      {/* Shop Content */}
       <div className="container-fluid fruite py-5">
         <div className="container py-5">
-          <h1 className="mb-4">Fresh fruits shop</h1>
           <div className="row g-4">
-            <div className="col-lg-12">
-              <div className="row g-4">
-                <div className="col-xl-3">
-                  <div className="input-group w-100 mx-auto d-flex">
-                    <input
-                      type="search"
-                      className="form-control p-3"
-                      placeholder="Search products..."
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      aria-describedby="search-btn"
-                    />
-                    <span id="search-btn" className="input-group-text p-3"><i className="fa fa-search"></i></span>
-                  </div>
-                </div>
-                <div className="col-6"></div>
-                <div className="col-xl-3">
-                  <div className="bg-light ps-3 py-3 rounded d-flex justify-content-between mb-4">
-                    <label htmlFor="sortSelect">Default Sorting:</label>
-                    <select id="sortSelect" className="border-0 form-select-sm bg-light me-3">
-                      <option>Nothing</option>
-                      <option>Popularity</option>
-                      <option>Price: Low to High</option>
-                      <option>Price: High to Low</option>
-                    </select>
-                  </div>
+
+            {/* Sidebar */}
+            <div className="col-lg-3">
+              <div className="bg-light rounded p-4 mb-4">
+                <h5 className="mb-3 fw-bold">Recherche</h5>
+                <div className="input-group">
+                  <input
+                    type="search"
+                    className="form-control"
+                    placeholder="Rechercher..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                  <span className="input-group-text bg-primary text-white"><i className="fa fa-search"></i></span>
                 </div>
               </div>
 
-              <div className="row g-4">
-                {/* Sidebar */}
-                <div className="col-lg-3">
-                  <div className="row g-4">
-                    <div className="col-lg-12">
-                      <div className="mb-3">
-                        <h4>Categories</h4>
-                        <ul className="list-unstyled fruite-categorie">
-                          {[
-                            { name: 'Apples', count: 3 }, { name: 'Oranges', count: 5 },
-                            { name: 'Strawberry', count: 2 }, { name: 'Banana', count: 8 }, { name: 'Pumpkin', count: 5 }
-                          ].map((cat, i) => (
-                            <li key={i}>
-                              <div className="d-flex justify-content-between fruite-name">
-                                <a href="#"><i className="fas fa-apple-alt me-2"></i>{cat.name}</a>
-                                <span>({cat.count})</span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="col-lg-12">
-                      <div className="mb-3">
-                        <h4 className="mb-2">Price</h4>
-                        <input
-                          type="range"
-                          className="form-range w-100"
-                          id="priceRange"
-                          min="0"
-                          max="500"
-                          value={maxPrice}
-                          onChange={e => setMaxPrice(Number(e.target.value))}
-                        />
-                        <output htmlFor="priceRange">Max: ${maxPrice}</output>
-                      </div>
-                    </div>
-                    <div className="col-lg-12">
-                      <h4>Featured products</h4>
-                      {featuredProducts.map(fp => (
-                        <div key={fp.id} className="d-flex align-items-center justify-content-start mb-3">
-                          <div className="rounded me-4" style={{ width: '100px', height: '100px' }}>
-                            <img src={fp.img} className="img-fluid rounded" alt={fp.name} />
-                          </div>
-                          <div>
-                            <h6 className="mb-2">{fp.name}</h6>
-                            <div className="d-flex mb-2">
-                              {Array.from({ length: 5 }).map((_, j) => (
-                                <i key={j} className={`fa fa-star ${j < fp.rating ? 'text-secondary' : ''}`}></i>
-                              ))}
-                            </div>
-                            <div className="d-flex mb-2">
-                              <h5 className="fw-bold me-2">${fp.price} $</h5>
-                              <h5 className="text-danger text-decoration-line-through">{fp.oldPrice} $</h5>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="d-flex justify-content-center my-4">
-                        <a href="#" className="btn border border-secondary px-4 py-3 rounded-pill text-primary w-100">View More</a>
-                      </div>
-                    </div>
-                    <div className="col-lg-12">
-                      <div className="position-relative">
-                        <img src="/fruitables/img/banner-fruits.jpg" className="img-fluid w-100 rounded" alt="Banner" />
-                        <div className="position-absolute" style={{ top: '50%', right: '10px', transform: 'translateY(-50%)' }}>
-                          <h3 className="text-secondary fw-bold">Fresh<br />Fruits<br />Banner</h3>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Products Grid */}
-                <div className="col-lg-9">
-                  <div className="row g-4 justify-content-center">
-                    {filtered.length === 0 ? (
-                      <div className="col-12 text-center py-5">
-                        <p className="text-muted">No products found for your search.</p>
-                      </div>
-                    ) : (
-                      filtered.map(item => (
-                        <div key={item.id} className="col-md-6 col-lg-6 col-xl-4">
-                          <div className="rounded position-relative fruite-item">
-                            <div className="fruite-img">
-                              <img src={item.img} className="img-fluid w-100 rounded-top" alt={item.name} />
-                            </div>
-                            <div className="text-white bg-secondary px-3 py-1 rounded position-absolute" style={{ top: '10px', left: '10px' }}>{item.category}</div>
-                            <div className="p-4 border border-secondary border-top-0 rounded-bottom">
-                              <h4>{item.name}</h4>
-                              <p>Fresh organic {item.name.toLowerCase()} — hand-picked daily.</p>
-                              <div className="d-flex justify-content-between flex-lg-wrap">
-                                <p className="text-dark fs-5 fw-bold mb-0">${item.price} / kg</p>
-                                <Link to="/cart" className="btn border border-secondary rounded-pill px-3 text-primary">
-                                  <i className="fa fa-shopping-bag me-2 text-primary"></i>Add to cart
-                                </Link>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+              <div className="bg-light rounded p-4 mb-4">
+                <h5 className="mb-3 fw-bold">Prix maximum</h5>
+                <input
+                  type="range"
+                  className="form-range w-100"
+                  min="1"
+                  max="20"
+                  step="0.5"
+                  value={maxPrice}
+                  onChange={e => setMaxPrice(Number(e.target.value))}
+                />
+                <div className="d-flex justify-content-between">
+                  <span className="text-muted small">0 DT</span>
+                  <span className="text-primary fw-bold">{maxPrice} DT</span>
                 </div>
               </div>
+
+              <div className="bg-light rounded p-4">
+                <h5 className="mb-3 fw-bold">Produits disponibles</h5>
+                <p className="text-primary fw-bold fs-4 mb-0">{filtered.length}</p>
+                <small className="text-muted">produit(s) trouvé(s)</small>
+              </div>
+            </div>
+
+            {/* Products Grid */}
+            <div className="col-lg-9">
+              {loading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-grow text-primary" role="status"></div>
+                  <p className="mt-3 text-muted">Chargement des produits...</p>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-5">
+                  <i className="fas fa-search fa-4x text-muted mb-3"></i>
+                  <h4 className="text-muted">Aucun produit trouvé</h4>
+                  <p className="text-muted">Essayez d'autres critères de recherche.</p>
+                </div>
+              ) : (
+                <div className="row g-4">
+                  {filtered.map(product => (
+                    <div key={product.id} className="col-md-6 col-xl-4">
+                      <div className="card border-0 shadow-sm h-100" style={{ borderRadius: '12px', overflow: 'hidden', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 25px rgba(0,0,0,0.12)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '' }}
+                      >
+                        <div style={{ position: 'relative', overflow: 'hidden', height: '200px' }}>
+                          <img
+                            src={resolveProductImage(product.image) || '/fruitables/img/hero-img-1.png'}
+                            onError={e => { e.currentTarget.src = '/fruitables/img/hero-img-1.png' }}
+                            alt={product.name}
+                            className="w-100 h-100"
+                            style={{ objectFit: 'cover', transition: 'transform 0.3s' }}
+                            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
+                            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                          />
+                          {product.stock === 0 && (
+                            <div className="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 rounded-end" style={{ fontSize: '11px', marginTop: '10px' }}>
+                              Rupture de stock
+                            </div>
+                          )}
+                          {product.stock > 0 && product.stock < 10 && (
+                            <div className="position-absolute top-0 start-0 bg-primary text-white px-2 py-1 rounded-end" style={{ fontSize: '11px', marginTop: '10px' }}>
+                              Stock limité
+                            </div>
+                          )}
+                        </div>
+                        <div className="card-body d-flex flex-column p-3">
+                          <Link to={`/shop/${product.id}`} className="text-decoration-none">
+                            <h6 className="fw-bold text-dark mb-1">{product.name}</h6>
+                          </Link>
+                          <p className="text-muted small mb-3 flex-grow-1">{truncate(product.description, 90)}</p>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <span className="fs-5 fw-bold text-primary">{product.price.toFixed(2)} DT</span>
+                            <button
+                              className={`btn btn-sm rounded-pill px-3 ${addedId === product.id ? 'btn-success' : 'btn-primary'}`}
+                              onClick={() => handleAddToCart(product)}
+                              disabled={product.stock === 0}
+                              style={{ transition: 'all 0.3s', fontSize: '12px' }}
+                            >
+                              {addedId === product.id ? (
+                                <><i className="fa fa-check me-1"></i>Ajouté !</>
+                              ) : (
+                                <><i className="fa fa-shopping-bag me-1"></i>Ajouter</>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

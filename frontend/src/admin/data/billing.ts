@@ -55,3 +55,22 @@ export const invoices: Invoice[] = [
   { id: '5', number: 'INV-2026-0221', date: 'Feb 21, 2026', dueDate: 'Mar 21, 2026', description: 'Pro Plan — Monthly', amount: 299, status: 'paid' },
   { id: '6', number: 'INV-2026-0121', date: 'Jan 21, 2026', dueDate: 'Feb 21, 2026', description: 'Starter to Pro Upgrade', amount: 250, status: 'paid' },
 ]
+
+export const billingMetrics = {
+  totalRevenue: 1620000,
+  orderRevenue: 1235000,
+  deliveryRevenue: 382000,
+  monthRevenue: 142000,
+  dailyRevenue: [
+    { day: 'Mon', amount: 21000 },
+    { day: 'Tue', amount: 24000 },
+    { day: 'Wed', amount: 26000 },
+    { day: 'Thu', amount: 29000 },
+    { day: 'Fri', amount: 33000 },
+    { day: 'Sat', amount: 41000 },
+    { day: 'Sun', amount: 48000 },
+  ],
+  ordersToday: 128,
+  deliveriesToday: 42,
+  avgOrderValue: 52,
+}

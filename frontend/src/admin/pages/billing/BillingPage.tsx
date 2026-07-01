@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
-import { Check, Download, CreditCard, Zap, Building2, ArrowUpRight } from 'lucide-react'
+import { Check, Download, CreditCard, Zap, Building2, ArrowUpRight, DollarSign, Truck, CalendarDays } from 'lucide-react'
 import { Button, Badge, Card, CardHeader, CardBody } from '@/admin/components/ui'
-import { currentPlan, plans, invoices } from '@/admin/data/billing'
+import { currentPlan, plans, invoices, billingMetrics } from '@/admin/data/billing'
 import { cn } from '@/utils/cn'
 import type { Invoice } from '@/types'
 
@@ -50,53 +50,91 @@ export function BillingPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="gradient-border">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-3">
           <Card className="p-5 bg-gradient-to-br from-orbit-primary/5 to-orbit-accent/5">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap className="w-4 h-4 text-orbit-primary-light" />
-                  <span className="text-xs font-semibold text-orbit-primary-light uppercase tracking-wider">Current Plan</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-3xl bg-orbit-surface2 border border-orbit-border">
+                <div className="flex items-center gap-3 mb-3">
+                  <DollarSign className="w-4 h-4 text-orbit-primary-light" />
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Total Revenue</p>
+                    <p className="text-2xl font-bold text-slate-100">${billingMetrics.totalRevenue.toLocaleString()}</p>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-100">{currentPlan.name}</h2>
+                <p className="text-xs text-slate-400">Revenue from all orders and deliveries.</p>
               </div>
-              <Badge variant="primary">Active</Badge>
+
+              <div className="p-4 rounded-3xl bg-orbit-surface2 border border-orbit-border">
+                <div className="flex items-center gap-3 mb-3">
+                  <Truck className="w-4 h-4 text-orbit-accent-light" />
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Order Revenue</p>
+                    <p className="text-2xl font-bold text-slate-100">${billingMetrics.orderRevenue.toLocaleString()}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">Revenue from customer orders.</p>
+              </div>
+
+              <div className="p-4 rounded-3xl bg-orbit-surface2 border border-orbit-border">
+                <div className="flex items-center gap-3 mb-3">
+                  <CalendarDays className="w-4 h-4 text-orbit-success-light" />
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Delivery Revenue</p>
+                    <p className="text-2xl font-bold text-slate-100">${billingMetrics.deliveryRevenue.toLocaleString()}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">Revenue from delivery fees and surcharges.</p>
+              </div>
             </div>
-            <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-3xl font-bold text-slate-100">${currentPlan.price}</span>
-              <span className="text-slate-500 text-sm">/{currentPlan.period}</span>
-            </div>
-            <div className="space-y-2 mb-5">
-              {currentPlan.features.map(f => (
-                <div key={f} className="flex items-center gap-2 text-sm text-slate-400">
-                  <Check className="w-3.5 h-3.5 text-orbit-primary-light flex-shrink-0" />{f}
+          </Card>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        <Card className="xl:col-span-2">
+          <CardHeader title="Daily Revenue" subtitle="This week" />
+          <CardBody className="pt-2">
+            <div className="space-y-4">
+              {billingMetrics.dailyRevenue.map(day => (
+                <div key={day.day} className="flex items-center justify-between gap-3 p-3 rounded-3xl bg-orbit-surface2 border border-orbit-border">
+                  <div>
+                    <p className="text-sm text-slate-400">{day.day}</p>
+                    <p className="text-lg font-semibold text-slate-100">${day.amount.toLocaleString()}</p>
+                  </div>
+                  <div className="text-xs text-slate-500">{Math.round((day.amount / billingMetrics.monthRevenue) * 100)}%</div>
                 </div>
               ))}
             </div>
-            <div className="pt-4 border-t border-orbit-border">
-              <p className="text-xs text-slate-500">Renews on <span className="text-slate-300 font-medium">{currentPlan.renewsAt}</span></p>
-              <Button variant="outline" size="sm" className="mt-3 w-full">Manage Subscription</Button>
-            </div>
-          </Card>
-        </motion.div>
+          </CardBody>
+        </Card>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-2">
-          <Card className="p-5 h-full">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-200">Resource Usage</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Current billing period</p>
-              </div>
-              <Button variant="ghost" size="sm" icon={<ArrowUpRight className="w-3.5 h-3.5" />} iconPosition="right">Details</Button>
+        <Card className="space-y-4">
+          <CardHeader title="Overview" subtitle="Monetary breakdown" />
+          <CardBody className="grid gap-4">
+            <div className="rounded-3xl bg-orbit-surface2 border border-orbit-border p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">This Month</p>
+              <p className="text-2xl font-bold text-slate-100 mt-2">${billingMetrics.monthRevenue.toLocaleString()}</p>
             </div>
-            <div className="space-y-6">
-              <UsageMeter label={currentPlan.usage.apiCalls.label} used={currentPlan.usage.apiCalls.used} limit={currentPlan.usage.apiCalls.limit} />
-              <UsageMeter label={currentPlan.usage.storage.label} used={currentPlan.usage.storage.used} limit={currentPlan.usage.storage.limit} unit=" GB" />
-              <UsageMeter label={currentPlan.usage.seats.label} used={currentPlan.usage.seats.used} limit={currentPlan.usage.seats.limit} />
-              <UsageMeter label={currentPlan.usage.projects.label} used={currentPlan.usage.projects.used} limit={currentPlan.usage.projects.limit} />
+            <div className="rounded-3xl bg-orbit-surface2 border border-orbit-border p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Orders Today</p>
+              <p className="text-2xl font-bold text-slate-100 mt-2">{billingMetrics.ordersToday}</p>
             </div>
-          </Card>
-        </motion.div>
+            <div className="rounded-3xl bg-orbit-surface2 border border-orbit-border p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Deliveries Today</p>
+              <p className="text-2xl font-bold text-slate-100 mt-2">{billingMetrics.deliveriesToday}</p>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title="Averages" subtitle="Order performance" />
+          <CardBody>
+            <div className="rounded-3xl bg-orbit-surface2 border border-orbit-border p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Average Order Value</p>
+              <p className="text-2xl font-bold text-slate-100 mt-2">${billingMetrics.avgOrderValue}</p>
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       <div>

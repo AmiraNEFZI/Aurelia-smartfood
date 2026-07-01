@@ -19,4 +19,5 @@ public class UserResponse {
     private String phone;
     private Role role;
     private StatutLivreur statutLivreur;
+    private Boolean active;
 }

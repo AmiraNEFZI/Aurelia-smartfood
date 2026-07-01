@@ -21,7 +21,7 @@ export function ContactPage() {
       <div className="container-fluid page-header py-5">
         <h1 className="text-center text-white display-6">Contact</h1>
         <ol className="breadcrumb justify-content-center mb-0">
-          <li className="breadcrumb-item"><Link to="/">Home</Link></li>
+          <li className="breadcrumb-item"><Link to="/">Accueil</Link></li>
           <li className="breadcrumb-item active text-white">Contact</li>
         </ol>
       </div>
@@ -33,9 +33,9 @@ export function ContactPage() {
             <div className="row g-4">
               <div className="col-12">
                 <div className="text-center mx-auto" style={{ maxWidth: '700px' }}>
-                  <h1 className="text-primary">Get in touch</h1>
+                  <h1 className="text-primary">Contactez-nous</h1>
                   <p className="mb-4">
-                    Have a question about our products or delivery? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+                    Une question sur nos produits ou nos livraisons ? Envoyez-nous un message et nous vous répondrons rapidement.
                   </p>
                 </div>
               </div>
@@ -58,8 +58,8 @@ export function ContactPage() {
               <div className="col-lg-7">
                 {sent ? (
                   <div className="alert alert-success" role="alert">
-                    <h4 className="alert-heading">Message sent!</h4>
-                    <p className="mb-0">Thank you for contacting SmartFood. We'll get back to you within 24 hours.</p>
+                    <h4 className="alert-heading">Message envoyé !</h4>
+                    <p className="mb-0">Merci de nous avoir contactés. Nous vous répondrons sous 24 heures.</p>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit}>
@@ -67,7 +67,7 @@ export function ContactPage() {
                       type="text"
                       name="name"
                       className="w-100 form-control border-0 py-3 mb-4"
-                      placeholder="Your Name"
+                      placeholder="Votre nom"
                       value={form.name}
                       onChange={handleChange}
                       required
@@ -76,7 +76,7 @@ export function ContactPage() {
                       type="email"
                       name="email"
                       className="w-100 form-control border-0 py-3 mb-4"
-                      placeholder="Enter Your Email"
+                      placeholder="Votre email"
                       value={form.email}
                       onChange={handleChange}
                       required
@@ -85,13 +85,13 @@ export function ContactPage() {
                       name="message"
                       className="w-100 form-control border-0 mb-4"
                       rows={5}
-                      placeholder="Your Message"
+                      placeholder="Votre message"
                       value={form.message}
                       onChange={handleChange}
                       required
                     ></textarea>
                     <button className="w-100 btn form-control border-secondary py-3 bg-white text-primary" type="submit">
-                      Submit
+                      Envoyer
                     </button>
                   </form>
                 )}
@@ -102,22 +102,22 @@ export function ContactPage() {
                 <div className="d-flex p-4 rounded mb-4 bg-white">
                   <i className="fas fa-map-marker-alt fa-2x text-primary me-4"></i>
                   <div>
-                    <h4>Address</h4>
-                    <p className="mb-2">123 Street New York, USA</p>
+                    <h4>Adresse</h4>
+                    <p className="mb-2">123 avenue de l'Industrie, Tunis</p>
                   </div>
                 </div>
                 <div className="d-flex p-4 rounded mb-4 bg-white">
                   <i className="fas fa-envelope fa-2x text-primary me-4"></i>
                   <div>
-                    <h4>Mail Us</h4>
-                    <p className="mb-2">contact@smartfood.com</p>
+                    <h4>Email</h4>
+                    <p className="mb-2">contact@aurelia-smartfood.com</p>
                   </div>
                 </div>
                 <div className="d-flex p-4 rounded bg-white">
                   <i className="fa fa-phone-alt fa-2x text-primary me-4"></i>
                   <div>
-                    <h4>Telephone</h4>
-                    <p className="mb-2">(+012) 3456 7890</p>
+                    <h4>Téléphone</h4>
+                    <p className="mb-2">(+216) 71 234 567</p>
                   </div>
                 </div>
               </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { Button, Input } from '@/admin/components/ui'
+import '@/admin/admin.css'
 
 export function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -16,7 +17,7 @@ export function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-orbit-bg flex items-center justify-center p-6 relative">
+    <div className="admin-root min-h-screen bg-orbit-bg flex items-center justify-center p-6 relative">
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[500px] h-[300px] bg-orbit-primary/8 blur-[100px] rounded-full" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[300px] bg-orbit-accent/8 blur-[100px] rounded-full" />

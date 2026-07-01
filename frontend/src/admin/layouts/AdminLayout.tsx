@@ -4,6 +4,7 @@ import { AdminSidebar } from './AdminSidebar'
 import { AdminTopbar } from './AdminTopbar'
 import { AdminFooter } from './AdminFooter'
 import { SidebarContext, useSidebarState } from '@/hooks/useSidebar'
+import '@/admin/admin.css'
 
 export function AdminLayout() {
   const sidebarState = useSidebarState()
@@ -11,7 +12,7 @@ export function AdminLayout() {
 
   return (
     <SidebarContext.Provider value={sidebarState}>
-      <div className="flex h-screen bg-orbit-bg overflow-hidden">
+      <div className="admin-root flex h-screen bg-orbit-bg overflow-hidden">
         <div className="orbit-glow-bg" />
 
         <AdminSidebar />

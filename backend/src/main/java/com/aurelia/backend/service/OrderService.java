@@ -11,15 +11,18 @@ import com.aurelia.backend.exception.BusinessException;
 import com.aurelia.backend.exception.ResourceNotFoundException;
 import com.aurelia.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -100,8 +103,9 @@ public class OrderService {
     }
 
     /**
-     * Assigne aléatoirement un seul livreur DISPONIBLE à la commande.
-     * Utilise le verrouillage optimiste (@Version) pour éviter les conflits.
+     * Assigne le premier livreur DISPONIBLE en FIFO
+     * (celui qui est disponible depuis le plus longtemps).
+     * Utilise @Version (optimistic locking) pour éviter les doublons.
      */
     @Transactional
     public void assignerLivreur(Order order) {
@@ -109,21 +113,40 @@ public class OrderService {
                 userRepository.findLivreursParStatut(StatutLivreur.DISPONIBLE);
 
         if (livreursDisponibles.isEmpty()) {
-            // Pas de livreur disponible — la commande reste EN_ATTENTE
+            log.info("Aucun livreur disponible pour la commande #{}", order.getId());
             return;
         }
 
-        // Sélection aléatoire d'un seul livreur
-        User livreur = livreursDisponibles.get(new Random().nextInt(livreursDisponibles.size()));
+        // FIFO : prendre le premier de la liste (le plus ancien disponible)
+        User livreur = livreursDisponibles.get(0);
 
         order.setDriver(livreur);
         order.setStatus(StatutCommande.PRISE_EN_CHARGE);
 
-        // Marquer le livreur comme OCCUPE
         livreur.setStatutLivreur(StatutLivreur.OCCUPE);
         userRepository.save(livreur);
-
         orderRepository.save(order);
+
+        log.info("Livreur {} assigné à la commande #{}", livreur.getEmail(), order.getId());
+    }
+
+    /**
+     * Scheduler : toutes les 2 minutes, vérifie les commandes EN_ATTENTE
+     * depuis plus de 10 minutes sans livreur → réessaie l'assignation FIFO.
+     */
+    @Scheduled(fixedDelay = 120_000) // every 2 minutes
+    @Transactional
+    public void reessayerAssignation() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(10);
+
+        List<Order> commandesEnAttente = orderRepository.findByStatus(StatutCommande.EN_ATTENTE);
+
+        for (Order order : commandesEnAttente) {
+            if (order.getOrderDate().isBefore(cutoff) && order.getDriver() == null) {
+                log.info("Timeout 10min: réessai assignation pour commande #{}", order.getId());
+                assignerLivreur(order);
+            }
+        }
     }
 
     /**

@@ -1,167 +1,243 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-
-const orderItems = [
-  { name: 'Awesome Broccoli', price: 69, qty: 2, img: '/fruitables/img/vegetable-item-2.jpg' },
-  { name: 'Potatoes', price: 69, qty: 2, img: '/fruitables/img/vegetable-item-5.jpg' },
-  { name: 'Big Banana', price: 69, qty: 2, img: '/fruitables/img/vegetable-item-3.png' },
-]
+import { useCart } from '@/client/context/CartContext'
+import { useAuth } from '@/client/context/AuthContext'
+import { useNotifications } from '@/client/context/NotificationContext'
+import { orderApi } from '@/client/services/api'
 
 export function CheckoutPage() {
+  const { items, subtotal, clearCart } = useCart()
+  const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
-  const [paymentMethod, setPaymentMethod] = useState('transfer')
-  const [form, setForm] = useState({
-    firstName: '', lastName: '', company: '', address: '',
-    city: '', country: '', zip: '', mobile: '', email: '', notes: ''
-  })
 
-  const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0)
+  const [address, setAddress] = useState('')
+  const [paymentMethod] = useState<'ESPECES'>('ESPECES') // only cash for now
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [successOrderId, setSuccessOrderId] = useState<number | null>(null)
+  const { addNotification } = useNotifications()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
-  }
+  const shipping = 2.0
+  const total = subtotal + shipping
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if not authenticated or cart is empty
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/checkout')
+      return
+    }
+    if (items.length === 0 && !submitting && successOrderId === null) {
+      navigate('/cart')
+    }
+  }, [isAuthenticated, items, navigate, submitting, successOrderId])
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    alert('Order placed successfully! Thank you for shopping with SmartFood.')
-    navigate('/')
+    if (!address.trim()) {
+      setError("Veuillez saisir votre adresse de livraison.")
+      return
+    }
+    setError('')
+    setSubmitting(true)
+    setLoading(true)
+
+    try {
+      const res = await orderApi.checkout({
+        address: address.trim(),
+        paymentMethod,
+      })
+      const orderId = res.data.id
+      setSuccessOrderId(orderId)
+      addNotification({
+        title: 'Commande confirmée',
+        message: `Votre commande #${orderId} a bien été enregistrée.`,
+        orderId,
+      })
+      clearCart()
+      navigate(`/order-confirmation/${orderId}`, { replace: true })
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } }
+      setError(
+        axiosErr.response?.data?.message ||
+        'Une erreur est survenue. Veuillez réessayer.'
+      )
+    } finally {
+      setLoading(false)
+      setSubmitting(false)
+    }
   }
+
+  if (!isAuthenticated || items.length === 0) return null
 
   return (
     <>
       {/* Page Header */}
       <div className="container-fluid page-header py-5">
-        <h1 className="text-center text-white display-6">Checkout</h1>
+        <h1 className="text-center text-white display-6">Finaliser la commande</h1>
         <ol className="breadcrumb justify-content-center mb-0">
-          <li className="breadcrumb-item"><Link to="/">Home</Link></li>
-          <li className="breadcrumb-item"><Link to="/cart">Cart</Link></li>
-          <li className="breadcrumb-item active text-white">Checkout</li>
+          <li className="breadcrumb-item"><Link to="/">Accueil</Link></li>
+          <li className="breadcrumb-item"><Link to="/cart" className="text-white">Panier</Link></li>
+          <li className="breadcrumb-item active text-white">Commande</li>
         </ol>
       </div>
 
-      {/* Checkout */}
-      <div className="container-fluid py-5">
-        <div className="container py-5">
-          <h1 className="mb-4">Billing details</h1>
-          <form onSubmit={handleSubmit}>
-            <div className="row g-5">
-              {/* Billing Form */}
-              <div className="col-md-12 col-lg-6 col-xl-7">
-                <div className="row">
-                  <div className="col-md-12 col-lg-6">
-                    <div className="form-item w-100">
-                      <label className="form-label my-3">First Name<sup>*</sup></label>
-                      <input type="text" name="firstName" className="form-control" value={form.firstName} onChange={handleChange} required />
-                    </div>
-                  </div>
-                  <div className="col-md-12 col-lg-6">
-                    <div className="form-item w-100">
-                      <label className="form-label my-3">Last Name<sup>*</sup></label>
-                      <input type="text" name="lastName" className="form-control" value={form.lastName} onChange={handleChange} required />
-                    </div>
-                  </div>
-                </div>
-                {[
-                  { label: 'Company Name', name: 'company', type: 'text', ph: '' },
-                  { label: 'Address', name: 'address', type: 'text', ph: 'House Number Street Name' },
-                  { label: 'Town/City', name: 'city', type: 'text', ph: '' },
-                  { label: 'Country', name: 'country', type: 'text', ph: '' },
-                  { label: 'Postcode/Zip', name: 'zip', type: 'text', ph: '' },
-                  { label: 'Mobile', name: 'mobile', type: 'tel', ph: '' },
-                  { label: 'Email Address', name: 'email', type: 'email', ph: '' },
-                ].map(f => (
-                  <div key={f.name} className="form-item">
-                    <label className="form-label my-3">{f.label}<sup>*</sup></label>
-                    <input type={f.type} name={f.name} className="form-control" placeholder={f.ph}
-                      value={(form as Record<string, string>)[f.name]} onChange={handleChange} required={f.name !== 'company'} />
-                  </div>
-                ))}
-                <div className="form-check my-3">
-                  <input type="checkbox" className="form-check-input" id="createAccount" />
-                  <label className="form-check-label" htmlFor="createAccount">Create an account?</label>
-                </div>
-                <hr />
-                <div className="form-check my-3">
-                  <input className="form-check-input" type="checkbox" id="diffAddress" />
-                  <label className="form-check-label" htmlFor="diffAddress">Ship to a different address?</label>
-                </div>
-                <div className="form-item">
-                  <textarea name="notes" className="form-control" rows={6} placeholder="Order Notes (Optional)" value={form.notes} onChange={handleChange}></textarea>
-                </div>
+      <div className="container py-5">
+        {/* Progress steps */}
+        <div className="d-flex justify-content-center align-items-center gap-3 mb-5">
+          {[
+            { icon: 'fa-shopping-bag', label: 'Panier', done: true },
+            { icon: 'fa-sign-in-alt', label: 'Connexion', done: true },
+            { icon: 'fa-map-marker-alt', label: 'Livraison', active: true },
+            { icon: 'fa-check-circle', label: 'Confirmation', done: false },
+          ].map((step, i) => (
+            <div key={i} className="d-flex align-items-center gap-2">
+              <div
+                className={`rounded-circle d-flex align-items-center justify-content-center
+                  ${step.done ? 'bg-success text-white' : step.active ? 'bg-primary text-white' : 'bg-light text-muted'}`}
+                style={{ width: '42px', height: '42px', flexShrink: 0 }}
+              >
+                <i className={`fas ${step.icon}`} style={{ fontSize: '14px' }}></i>
               </div>
+              <span className={`d-none d-md-inline small fw-semibold ${step.active ? 'text-primary' : step.done ? 'text-success' : 'text-muted'}`}>
+                {step.label}
+              </span>
+              {i < 3 && <div className="flex-grow-1 border-top border-2 mx-1" style={{ minWidth: '30px', opacity: 0.3 }}></div>}
+            </div>
+          ))}
+        </div>
 
-              {/* Order Summary */}
-              <div className="col-md-12 col-lg-6 col-xl-5">
-                <div className="table-responsive">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Products</th><th>Name</th><th>Price</th><th>Qty</th><th>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderItems.map((item, i) => (
-                        <tr key={i}>
-                          <td><img src={item.img} className="img-fluid rounded-circle" style={{ width: '80px', height: '80px' }} alt={item.name} /></td>
-                          <td className="py-4">{item.name}</td>
-                          <td className="py-4">${item.price}.00</td>
-                          <td className="py-4">{item.qty}</td>
-                          <td className="py-4">${item.price * item.qty}.00</td>
-                        </tr>
-                      ))}
-                      <tr>
-                        <td colSpan={3}></td>
-                        <td className="py-4"><p className="mb-0 text-dark py-3">Subtotal</p></td>
-                        <td className="py-4"><div className="py-3 border-bottom border-top"><p className="mb-0 text-dark">${subtotal}.00</p></div></td>
-                      </tr>
-                      <tr>
-                        <td colSpan={1}></td>
-                        <td className="py-4"><p className="mb-0 text-dark py-4">Shipping</p></td>
-                        <td colSpan={3} className="py-4">
-                          {[{ id: 'free', label: 'Free Shipping', val: 'free' }, { id: 'flat', label: 'Flat rate: $15.00', val: 'flat' }, { id: 'pickup', label: 'Local Pickup: $8.00', val: 'pickup' }].map(s => (
-                            <div key={s.id} className="form-check text-start">
-                              <input type="radio" className="form-check-input bg-primary border-0" id={s.id} name="shipping" value={s.val} defaultChecked={s.val === 'free'} />
-                              <label className="form-check-label" htmlFor={s.id}>{s.label}</label>
-                            </div>
-                          ))}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td colSpan={3}></td>
-                        <td className="py-4"><p className="mb-0 text-dark text-uppercase py-3">TOTAL</p></td>
-                        <td className="py-4"><div className="py-3 border-bottom border-top"><p className="mb-0 text-dark">${subtotal}.00</p></div></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+        <div className="row g-5 justify-content-center">
+          {/* Left: Delivery form */}
+          <div className="col-lg-7">
+            <div className="card border-0 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="card-body p-4 p-md-5">
+                <h4 className="fw-bold mb-1">
+                  <i className="fas fa-map-marker-alt text-primary me-2"></i>
+                  Adresse de livraison
+                </h4>
+                <p className="text-muted small mb-4">Bonjour <strong>{user?.firstName}</strong>, où souhaitez-vous être livré ?</p>
 
-                {/* Payment methods */}
-                {[
-                  { id: 'transfer', label: 'Direct Bank Transfer', desc: 'Make your payment directly into our bank account. Please use your Order ID as the payment reference.' },
-                  { id: 'check', label: 'Check Payments', desc: '' },
-                  { id: 'cod', label: 'Cash On Delivery', desc: '' },
-                  { id: 'paypal', label: 'PayPal', desc: '' },
-                ].map(pm => (
-                  <div key={pm.id} className={`row g-4 text-center align-items-center justify-content-center ${pm.id !== 'paypal' ? 'border-bottom' : ''} py-3`}>
-                    <div className="col-12">
-                      <div className="form-check text-start my-3">
-                        <input type="radio" className="form-check-input bg-primary border-0" id={pm.id} name="payment"
-                          checked={paymentMethod === pm.id} onChange={() => setPaymentMethod(pm.id)} />
-                        <label className="form-check-label" htmlFor={pm.id}>{pm.label}</label>
+                {error && (
+                  <div className="alert alert-danger d-flex align-items-center gap-2 rounded-3 py-2" role="alert">
+                    <i className="fas fa-exclamation-circle"></i>
+                    <span style={{ fontSize: '13px' }}>{error}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">
+                      Adresse complète <span className="text-danger">*</span>
+                    </label>
+                    <textarea
+                      className="form-control"
+                      rows={3}
+                      placeholder="Ex: 12 Rue de la Liberté, Cité Ennasr, Ariana"
+                      value={address}
+                      onChange={e => setAddress(e.target.value)}
+                      required
+                      style={{ borderRadius: '10px', resize: 'none' }}
+                    />
+                    <small className="text-muted">
+                      <i className="fas fa-info-circle me-1"></i>
+                      Indiquez le numéro, la rue, la ville et tout repère utile pour le livreur.
+                    </small>
+                  </div>
+
+                  {/* Payment method — cash only */}
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold">Mode de paiement</label>
+                    <div
+                      className="border rounded-3 p-3 d-flex align-items-center gap-3 bg-light"
+                      style={{ cursor: 'default' }}
+                    >
+                      <div className="rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                        style={{ width: '44px', height: '44px', flexShrink: 0 }}>
+                        <i className="fas fa-money-bill-wave text-white"></i>
                       </div>
-                      {pm.desc && paymentMethod === pm.id && <p className="text-start text-dark small">{pm.desc}</p>}
+                      <div>
+                        <p className="fw-bold mb-0">Paiement à la livraison</p>
+                        <small className="text-muted">Payez en espèces lors de la réception de votre commande</small>
+                      </div>
+                      <div className="ms-auto">
+                        <div className="rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                          style={{ width: '22px', height: '22px' }}>
+                          <i className="fas fa-check text-white" style={{ fontSize: '10px' }}></i>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-100 py-3 rounded-pill fw-bold"
+                    disabled={loading || !address.trim()}
+                    style={{ fontSize: '16px' }}
+                  >
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Confirmation en cours...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-check-circle me-2"></i>
+                        Confirmer ma commande
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Order summary */}
+          <div className="col-lg-4">
+            <div className="card border-0 shadow-sm" style={{ borderRadius: '16px' }}>
+              <div className="card-header bg-white border-bottom py-3 px-4" style={{ borderRadius: '16px 16px 0 0' }}>
+                <h6 className="fw-bold mb-0">
+                  <i className="fas fa-receipt text-primary me-2"></i>
+                  Récapitulatif ({items.length} article{items.length > 1 ? 's' : ''})
+                </h6>
+              </div>
+              <div className="card-body px-4 py-3">
+                {items.map(item => (
+                  <div key={item.id} className="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom">
+                    <img src={item.img || '/fruitables/img/hero-img-1.png'} alt={item.name}
+                      className="rounded" style={{ width: '55px', height: '55px', objectFit: 'cover', flexShrink: 0 }}
+                      onError={e => { e.currentTarget.src = '/fruitables/img/hero-img-1.png' }} />
+                    <div className="flex-grow-1">
+                      <p className="mb-0 fw-semibold small">{item.name}</p>
+                      <small className="text-muted">x{item.quantity}</small>
+                    </div>
+                    <span className="fw-bold small">{(item.price * item.quantity).toFixed(2)} DT</span>
                   </div>
                 ))}
 
-                <div className="row g-4 text-center align-items-center justify-content-center pt-4">
-                  <button type="submit" className="btn border-secondary py-3 px-4 text-uppercase w-100 text-primary">
-                    Place Order
-                  </button>
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Sous-total</span>
+                  <span>{subtotal.toFixed(2)} DT</span>
+                </div>
+                <div className="d-flex justify-content-between mb-3 pb-3 border-bottom">
+                  <span className="text-muted">Livraison</span>
+                  <span className="text-success">{shipping.toFixed(2)} DT</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span className="fs-6 fw-bold">Total</span>
+                  <span className="fs-6 fw-bold text-primary">{total.toFixed(2)} DT</span>
+                </div>
+
+                <div className="mt-4 p-3 bg-primary bg-opacity-10 rounded-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <i className="fas fa-truck text-primary"></i>
+                    <span className="small fw-semibold text-primary">Livraison estimée : 2 heures max</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </>

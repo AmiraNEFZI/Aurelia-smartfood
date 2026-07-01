@@ -15,7 +15,7 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-orbit-bg flex items-center justify-center p-6">
+    <div className="admin-root min-h-screen bg-orbit-bg flex items-center justify-center p-6">
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-orbit-primary/8 blur-[100px] rounded-full" />
       </div>

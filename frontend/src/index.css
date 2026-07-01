@@ -1,135 +1,384 @@
-@import "tailwindcss";
-
-/* ── Fruitables (client) Bootstrap CSS via CDN is loaded in ClientLayout ── */
-
-/* Enable class-based dark mode (.dark on <html>) */
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* ─── Runtime CSS variables — these change at runtime with the theme ──────── */
-:root {
-  --bg:       #09090E;
-  --surface:  #0F0F17;
-  --surface2: #14141E;
-  --surface3: #1A1A26;
-  --border:   #1E1E2E;
-  --border2:  #262636;
-
-  --text-primary:   #F1F5F9;
-  --text-secondary: #CBD5E1;
-  --text-muted:     #94A3B8;
-  --text-subtle:    #64748B;
-
-  --hover-bg:   rgba(255, 255, 255, 0.05);
-  --hover-bg2:  rgba(255, 255, 255, 0.08);
-  --hover-bg3:  rgba(255, 255, 255, 0.02);
-  --glass-bg:   rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.07);
-}
-
-html:not(.dark) {
-  --bg:       #F8FAFC;
-  --surface:  #FFFFFF;
-  --surface2: #F1F5F9;
-  --surface3: #E8EDF3;
-  --border:   #E2E8F0;
-  --border2:  #CBD5E1;
-
-  --text-primary:   #0F172A;
-  --text-secondary: #1E293B;
-  --text-muted:     #475569;
-  --text-subtle:    #94A3B8;
-
-  --hover-bg:   rgba(0, 0, 0, 0.04);
-  --hover-bg2:  rgba(0, 0, 0, 0.07);
-  --hover-bg3:  rgba(0, 0, 0, 0.02);
-  --glass-bg:   rgba(0, 0, 0, 0.02);
-  --glass-border: rgba(0, 0, 0, 0.08);
-}
-
-@theme inline {
-  --color-orbit-bg:       var(--bg);
-  --color-orbit-surface:  var(--surface);
-  --color-orbit-surface2: var(--surface2);
-  --color-orbit-surface3: var(--surface3);
-  --color-orbit-border:   var(--border);
-  --color-orbit-border2:  var(--border2);
-}
-
-@theme {
-  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
-
-  --color-orbit-primary:       #7C3AED;
-  --color-orbit-primary-light: #8B5CF6;
-  --color-orbit-primary-glow:  rgba(124, 58, 237, 0.25);
-
-  --color-orbit-accent:       #06B6D4;
-  --color-orbit-accent-light: #22D3EE;
-  --color-orbit-accent-glow:  rgba(6, 182, 212, 0.2);
-
-  --color-orbit-success: #10B981;
-  --color-orbit-warning: #F59E0B;
-  --color-orbit-danger:  #EF4444;
-  --color-orbit-info:    #3B82F6;
-
-  --color-orbit-text-secondary: var(--text-secondary);
-}
-
+/* ══════════════════════════════════════════════════
+   Global resets — no Tailwind preflight here
+   Bootstrap is in index.html for client routes
+   Tailwind is imported only in admin.css via AdminLayout
+══════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; }
-html, body, #root { height: 100%; }
 
-body {
+body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f4f7ff; color: #102a43; overflow-x: hidden; }
+
+:root {
+  --aurelia-blue: #0b1f4e;
+  --aurelia-primary: #0b1f4e;
+  --aurelia-dark: #08183b;
+  --aurelia-soft: #e9efff;
+  --aurelia-muted: #5b6d99;
+  --aurelia-border: #c8d4f4;
+}
+
+/* Client layout — compensate for fixed navbar and topbar */
+.client-main {
+  padding-top: 132px;
+}
+
+@media (max-width: 991px) {
+  .client-main {
+    padding-top: 118px;
+  }
+}
+
+.container-fluid.fixed-top {
+  z-index: 1050;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
   margin: 0;
-  font-family: var(--font-family-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  overflow: visible;
 }
 
-/* Scrollbar */
+/* Navbar / Topbar tweaks to increase band thickness and spacing */
+.topbar {
+  padding: 0.6rem 1.5rem !important;
+  background: var(--aurelia-dark) !important;
+  width: 100%;
+  border-radius: 0 !important;
+}
+
+.topbar a,
+.topbar .text-white,
+.topbar .fas {
+  color: #ffffff !important;
+}
+
+.main-navbar {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(16, 42, 67, 0.08);
+  width: 100%;
+  border-radius: 0 !important;
+}
+
+.client-navbar-wrapper {
+  background: transparent;
+  border-bottom: none !important;
+}
+
+.client-navbar-wrapper .main-navbar {
+  box-shadow: none;
+}
+
+.client-navbar-wrapper .navbar-brand span,
+.client-navbar-wrapper .navbar-nav .nav-link {
+  color: var(--aurelia-dark) !important;
+}
+
+.client-navbar-wrapper .topbar a,
+.client-navbar-wrapper .topbar .text-white,
+.client-navbar-wrapper .topbar .fas {
+  color: #ffffff !important;
+}
+
+.client-navbar-wrapper .navbar-nav .nav-link.active,
+.client-navbar-wrapper .navbar-nav .nav-link:hover {
+  color: var(--aurelia-primary) !important;
+}
+
+.client-navbar-wrapper .navbar-nav .nav-link.active,
+.client-navbar-wrapper .navbar-nav .nav-link:hover {
+  color: #c5d4ff !important;
+}
+
+.main-navbar .navbar-brand img {
+  height: 54px !important;
+  width: auto;
+}
+
+.bg-success {
+  background-color: var(--aurelia-primary) !important;
+}
+
+.text-success {
+  color: var(--aurelia-primary) !important;
+}
+
+.border-success {
+  border-color: var(--aurelia-primary) !important;
+}
+
+.btn-success,
+.btn-primary,
+.btn-dark,
+.btn-secondary,
+.btn-warning,
+.btn-danger {
+  color: #ffffff !important;
+}
+
+.btn-primary,
+.btn-success,
+.btn-dark,
+.btn-warning,
+.btn-outline-primary,
+.btn-outline-secondary {
+  border-color: var(--aurelia-primary) !important;
+}
+
+.btn-primary,
+.btn-success,
+.btn-warning,
+.btn-dark {
+  background-color: var(--aurelia-primary) !important;
+  color: #ffffff !important;
+}
+
+.btn-outline-primary,
+.btn-outline-secondary {
+  background-color: transparent !important;
+  color: var(--aurelia-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-success:hover,
+.btn-success:focus,
+.btn-warning:hover,
+.btn-warning:focus,
+.btn-dark:hover,
+.btn-dark:focus,
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover {
+  color: #ffffff !important;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+  background-color: #142f62 !important;
+  border-color: #142f62 !important;
+}
+
+.bg-warning,
+.btn-warning,
+.badge-warning,
+.alert-warning,
+.border-warning,
+.spinner-border.text-warning,
+.progress-bar.bg-warning {
+  background-color: var(--aurelia-primary) !important;
+  border-color: var(--aurelia-primary) !important;
+  color: #ffffff !important;
+}
+
+.text-warning {
+  color: var(--aurelia-primary) !important;
+}
+
+.text-secondary {
+  color: #5e6b8a !important;
+}
+
+.main-navbar .navbar-brand span {
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  color: var(--aurelia-dark);
+}
+
+.main-navbar .navbar-nav .nav-link {
+  line-height: 1.6;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  color: var(--aurelia-dark) !important;
+  font-weight: 600;
+}
+
+.main-navbar .navbar-nav {
+  gap: 0.75rem;
+}
+
+.main-navbar .navbar-nav .nav-link.active,
+.main-navbar .navbar-nav .nav-link:hover {
+  color: var(--aurelia-blue) !important;
+}
+
+.main-navbar .navbar-nav .nav-link:hover {
+  text-decoration: none;
+}
+
+.page-header {
+  padding-top: 2.5rem !important;
+  padding-bottom: 2.5rem !important;
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+.footer {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.hero-header {
+  background: linear-gradient(180deg, rgba(14, 78, 154, 0.08) 0%, rgba(247, 251, 255, 0.96) 100%);
+  margin-top: 0;
+  padding-top: 3rem;
+  margin-bottom: 0;
+}
+
+.hero-header .display-3 {
+  color: #0b3a75;
+}
+
+.hero-header .btn-primary,
+.btn-primary {
+  background-color: var(--aurelia-blue);
+  border-color: var(--aurelia-blue);
+}
+
+.btn-warning,
+.alert-warning,
+.badge-warning,
+.text-warning,
+.bg-warning,
+.border-warning,
+.spinner-border.text-warning,
+.progress-bar.bg-warning {
+  color: #ffffff !important;
+  background-color: var(--aurelia-blue) !important;
+  border-color: var(--aurelia-blue) !important;
+}
+
+.text-warning {
+  color: var(--aurelia-dark) !important;
+}
+
+.bg-warning {
+  background-color: var(--aurelia-soft) !important;
+}
+
+.alert-warning {
+  background-color: rgba(11, 31, 78, 0.1) !important;
+  color: var(--aurelia-dark) !important;
+  border-color: var(--aurelia-primary) !important;
+}
+
+.badge-warning {
+  color: #ffffff !important;
+  background-color: var(--aurelia-primary) !important;
+}
+
+.btn-outline-secondary {
+  color: #0d3f82;
+  border-color: var(--aurelia-border);
+  background-color: transparent !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background: var(--aurelia-soft);
+  border-color: var(--aurelia-dark);
+  color: var(--aurelia-dark);
+}
+
+.featurs-item,
+.fruite-item,
+.testimonial-item {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.featurs-item:hover,
+.fruite-item:hover,
+.testimonial-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 45px rgba(16, 42, 67, 0.08);
+}
+
+.featurs-icon,
+.featurs-icon.bg-secondary,
+.featurs-item .featurs-icon,
+.featurs-icon.btn-square.bg-secondary,
+.featurs-icon.bg-secondary.btn-square,
+.btn-square.bg-secondary {
+  background-color: var(--aurelia-primary) !important;
+}
+
+.featurs-icon i {
+  color: #ffffff !important;
+}
+
+.bg-primary {
+  background-color: var(--aurelia-blue) !important;
+}
+
+.text-primary {
+  color: var(--aurelia-blue) !important;
+}
+
+.bg-light {
+  background: #f6f9ff !important;
+}
+
+.text-muted {
+  color: var(--aurelia-muted) !important;
+}
+
+.border-secondary {
+  border-color: var(--aurelia-border) !important;
+}
+
+.btn-square {
+  width: 88px;
+  height: 88px;
+}
+
+@media (max-width: 767px) {
+  .hero-header .display-3 {
+    font-size: 2.5rem;
+  }
+}
+
+.main-navbar .navbar-brand span {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.main-navbar .navbar-nav .nav-link {
+  line-height: 1.6;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.main-navbar .navbar-nav {
+  gap: 0.75rem;
+}
+
+.main-navbar .navbar-nav .nav-link.active,
+.main-navbar .navbar-nav .nav-link:hover {
+  color: #0f5132;
+}
+
+.page-header {
+  padding-top: 2.5rem !important;
+  padding-bottom: 2.5rem !important;
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+.footer {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+/* Smooth scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border2); filter: brightness(1.2); }
-
-/* Orbit utility classes */
-.glow-primary { box-shadow: 0 0 20px var(--color-orbit-primary-glow); }
-.glow-accent  { box-shadow: 0 0 20px var(--color-orbit-accent-glow); }
-
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-}
-
-.text-gradient {
-  background: linear-gradient(135deg, #8B5CF6, #06B6D4);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.orbit-glow-bg {
-  position: fixed;
-  top: -200px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 800px;
-  height: 600px;
-  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Light mode text color overrides for Orbit */
-html:not(.dark) .text-slate-100,
-html:not(.dark) .text-slate-200 { color: var(--text-primary); }
-html:not(.dark) .text-slate-300  { color: var(--text-secondary); }
-html:not(.dark) .text-slate-400,
-html:not(.dark) .text-slate-500  { color: var(--text-muted); }
-html:not(.dark) .text-slate-600,
-html:not(.dark) .text-slate-700  { color: var(--text-subtle); }
-
-html:not(.dark) .hover\:bg-white\/5:hover  { background-color: rgba(0, 0, 0, 0.05) !important; }
-html:not(.dark) .bg-white\/5  { background-color: rgba(0, 0, 0, 0.04) !important; }
-html:not(.dark) .bg-orbit-primary\/5 { background-color: rgba(124, 58, 237, 0.06) !important; }
-html:not(.dark) .bg-orbit-primary\/15 { background-color: rgba(124, 58, 237, 0.12) !important; }
-html:not(.dark) .bg-orbit-primary\/10 { background-color: rgba(124, 58, 237, 0.10) !important; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
