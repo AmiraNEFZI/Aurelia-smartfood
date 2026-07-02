@@ -30,18 +30,22 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initAdmin() {
+        // Toujours mettre à jour le mot de passe admin au démarrage pour garantir la cohérence
+        User admin;
         if (userRepository.existsByEmail("admin@smartfood.com")) {
-            return; // Déjà créé
+            admin = userRepository.findByEmail("admin@smartfood.com").orElseThrow();
+        } else {
+            admin = User.builder()
+                    .firstName("Admin")
+                    .lastName("SmartFood")
+                    .email("admin@smartfood.com")
+                    .role(Role.ADMIN)
+                    .build();
         }
-        User admin = User.builder()
-                .firstName("Admin")
-                .lastName("SmartFood")
-                .email("admin@smartfood.com")
-                .password(passwordEncoder.encode("admin123"))
-                .role(Role.ADMIN)
-                .build();
+        // Force le mot de passe à admin123 à chaque démarrage
+        admin.setPassword(passwordEncoder.encode("admin123"));
         userRepository.save(admin);
-        log.info("✅ Admin créé : admin@smartfood.com / admin123");
+        log.info("✅ Admin prêt : admin@smartfood.com / admin123");
     }
 
     private void initProducts() {
