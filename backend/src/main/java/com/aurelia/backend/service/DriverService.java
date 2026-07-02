@@ -64,13 +64,7 @@ public class DriverService {
             throw new BusinessException("Cet utilisateur n'est pas un livreur.");
         }
 
-        // Un livreur OCCUPE ne peut pas se mettre DISPONIBLE manuellement
-        if (driver.getStatutLivreur() == StatutLivreur.OCCUPE
-                && newStatus == StatutLivreur.DISPONIBLE) {
-            throw new BusinessException(
-                    "Impossible de changer le statut : vous avez une livraison en cours.");
-        }
-
+        // Le livreur peut changer son statut librement
         driver.setStatutLivreur(newStatus);
         return toResponse(userRepository.save(driver));
     }

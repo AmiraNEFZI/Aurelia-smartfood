@@ -71,20 +71,30 @@ function getDriverUser() {
 }
 
 // ── Composant StatusPicker ────────────────────────────────────────────────────
-function StatusPicker({ current, onChange }: { current: string; onChange: (s: string) => void }) {
+function StatusPicker({ current, onChange, loading = false }: {
+  current: string
+  onChange: (s: string) => void
+  loading?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const currentCfg = DRIVER_STATUSES.find(s => s.key === current) ?? DRIVER_STATUSES[3]
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => !loading && setOpen(o => !o)}
+        disabled={loading}
         className={cn(
           'flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all',
-          currentCfg.bg, currentCfg.color, currentCfg.border
+          currentCfg.bg, currentCfg.color, currentCfg.border,
+          loading && 'opacity-60 cursor-not-allowed'
         )}
       >
-        <span className={cn('w-2 h-2 rounded-full flex-shrink-0', currentCfg.dot, currentCfg.dotPulse)} />
+        {loading ? (
+          <span className="w-2 h-2 rounded-full border border-current border-t-transparent animate-spin flex-shrink-0" />
+        ) : (
+          <span className={cn('w-2 h-2 rounded-full flex-shrink-0', currentCfg.dot, currentCfg.dotPulse)} />
+        )}
         {currentCfg.label}
         <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
       </button>
@@ -135,6 +145,7 @@ export function DriverDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [driverStatus, setDriverStatus] = useState<string>('HORS_LIGNE')
+  const [statusLoading, setStatusLoading] = useState(false)
   const navigate = useNavigate()
   const driver = getDriverUser()
 
@@ -142,19 +153,34 @@ export function DriverDashboardPage() {
   const greeting = now.getHours() < 12 ? 'Bonjour' : now.getHours() < 17 ? 'Bon après-midi' : 'Bonsoir'
 
   useEffect(() => {
+    // Charger les commandes
     api.get('/orders/deliveries')
       .then(res => setOrders(Array.isArray(res.data) ? res.data : []))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false))
+
+    // Charger le vrai statut du livreur depuis l'API
+    api.get('/users/me')
+      .then(res => {
+        if (res.data?.statutLivreur) {
+          setDriverStatus(res.data.statutLivreur)
+        }
+      })
+      .catch(() => {}) // ignore si endpoint pas dispo
   }, [])
 
   const handleStatusChange = async (newStatus: string) => {
     const prev = driverStatus
     setDriverStatus(newStatus) // optimistic update
+    setStatusLoading(true)
     try {
       await api.patch(`/driver/status?status=${newStatus}`)
-    } catch {
+    } catch (err: unknown) {
       setDriverStatus(prev) // rollback on error
+      const ax = err as { response?: { data?: { message?: string } } }
+      console.warn('Statut non changé:', ax.response?.data?.message)
+    } finally {
+      setStatusLoading(false)
     }
   }
 
@@ -189,7 +215,7 @@ export function DriverDashboardPage() {
         </div>
 
         {/* Sélecteur de statut */}
-        <StatusPicker current={driverStatus} onChange={handleStatusChange} />
+        <StatusPicker current={driverStatus} onChange={handleStatusChange} loading={statusLoading} />
       </motion.div>
 
       {/* ── KPI Cards ── */}
