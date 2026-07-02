@@ -197,6 +197,32 @@ public class OrderService {
     }
 
     /**
+     * ADMIN : assigner manuellement un livreur à une commande.
+     */
+    @Transactional
+    public OrderResponse assignDriver(Long orderId, Long driverId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commande introuvable : " + orderId));
+        User driver = userRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Livreur introuvable : " + driverId));
+
+        // Libérer l'ancien livreur si existant
+        if (order.getDriver() != null) {
+            User oldDriver = order.getDriver();
+            oldDriver.setStatutLivreur(StatutLivreur.DISPONIBLE);
+            userRepository.save(oldDriver);
+        }
+
+        order.setDriver(driver);
+        order.setStatus(StatutCommande.PRISE_EN_CHARGE);
+        driver.setStatutLivreur(StatutLivreur.OCCUPE);
+        userRepository.save(driver);
+
+        log.info("Admin: livreur {} assigné manuellement à la commande #{}", driver.getEmail(), orderId);
+        return toResponse(orderRepository.save(order));
+    }
+
+    /**
      * Mettre à jour le statut d'une commande.
      */
     @Transactional

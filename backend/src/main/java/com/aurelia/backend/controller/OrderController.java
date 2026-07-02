@@ -69,6 +69,18 @@ public class OrderController {
     }
 
     /**
+     * ADMIN : assigner manuellement un livreur à une commande.
+     */
+    @PatchMapping("/{id}/assign")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Assigner manuellement un livreur à une commande")
+    public ResponseEntity<OrderResponse> assignDriver(
+            @PathVariable Long id,
+            @RequestParam Long driverId) {
+        return ResponseEntity.ok(orderService.assignDriver(id, driverId));
+    }
+
+    /**
      * ADMIN : mettre à jour le statut d'une commande.
      */
     @PatchMapping("/{id}/status")

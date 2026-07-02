@@ -115,10 +115,13 @@ export const adminStatsApi = {
 export interface OrderResponse {
   id: number
   clientName: string
+  driverId?: number
+  driverName?: string
   address: string
   totalAmount: number
   status: string
   orderDate: string
+  paymentMethod?: string
   items: { productName: string; quantity: number; unitPrice: number; subtotal: number }[]
 }
 
@@ -126,6 +129,24 @@ export const adminOrdersApi = {
   getAll: () => api.get<OrderResponse[]>('/orders'),
   updateStatus: (id: number, status: string) =>
     api.patch<OrderResponse>(`/orders/${id}/status`, null, { params: { status } }),
+  assignDriver: (orderId: number, driverId: number) =>
+    api.patch<OrderResponse>(`/orders/${orderId}/assign`, null, { params: { driverId } }),
+}
+
+// ── Admin Products ────────────────────────────────────────────────────────────
+export interface ProductPayload {
+  name: string
+  description?: string
+  price: number
+  stock: number
+  image?: string
+}
+
+export const adminProductsApi = {
+  getAll: () => api.get('/products'),
+  create: (data: ProductPayload) => api.post('/products', data),
+  update: (id: number, data: ProductPayload) => api.put(`/products/${id}`, data),
+  delete: (id: number) => api.delete(`/products/${id}`),
 }
 
 // ── Admin Users ───────────────────────────────────────────────────────────────

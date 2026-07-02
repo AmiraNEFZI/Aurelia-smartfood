@@ -34,9 +34,11 @@ import { DriverDashboardPage } from '@/driver/pages/DriverDashboardPage'
 import { DriverOrdersPage } from '@/driver/pages/DriverOrdersPage'
 // Admin additions
 import { CreateProductPage } from '@/admin/pages/products/CreateProductPage'
+import { ProductsPage } from '@/admin/pages/products/ProductsPage'
 import { CreateDriverPage as CreateDriverPageOld } from '@/admin/pages/drivers/CreateDriverPage'
 import { CreateDriverPage } from '@/admin/pages/crm/CreateDriverPage'
 import { CreateAdminPage } from '@/admin/pages/crm/CreateAdminPage'
+import { OrdersPage } from '@/admin/pages/orders/OrdersPage'
 
 export default function App() {
   return (
@@ -73,7 +75,9 @@ export default function App() {
         <Route path="help" element={<HelpPage />} />
         <Route path="components" element={<ComponentsPage />} />
         <Route path="products/create" element={<CreateProductPage />} />
+        <Route path="products" element={<ProductsPage />} />
         <Route path="drivers/create" element={<CreateDriverPageOld />} />
+        <Route path="orders" element={<OrdersPage />} />
         {/* CRM — create user pages */}
         <Route path="users/create-driver" element={<CreateDriverPage />} />
         <Route path="users/create-admin" element={<CreateAdminPage />} />
