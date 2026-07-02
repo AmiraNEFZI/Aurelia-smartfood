@@ -337,7 +337,7 @@ export function OrdersPage() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => setSelectedOrder(order)}
-                          className="opacity-0 group-hover:opacity-100 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orbit-primary/15 text-orbit-primary-light text-xs font-medium hover:bg-orbit-primary/25 transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orbit-primary/15 text-orbit-primary-light text-xs font-medium hover:bg-orbit-primary/25 transition-all"
                         >
                           <Eye className="w-3 h-3" />
                           Gérer

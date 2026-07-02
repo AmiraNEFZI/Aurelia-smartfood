@@ -42,7 +42,10 @@ function mapApiItemToCartItem(item: CartItemResponse): CartItem {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  // ADMIN et LIVREUR n'ont pas de panier — on ignore les appels API cart
+  const isClientRole = !user || user.role === 'CLIENT'
+
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -95,22 +98,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isClientRole) {
       syncLocalCartToBackend()
         .then(fetchCart)
         .catch(() => {
           const fallback = loadLocalCart()
           setItems(fallback)
         })
-    } else {
-      /* eslint-disable react-hooks/set-state-in-effect */
+    } else if (!isAuthenticated) {
       setItems(loadLocalCart())
-      /* eslint-enable react-hooks/set-state-in-effect */
     }
-  }, [isAuthenticated])
+    // ADMIN/LIVREUR : on ne touche pas au panier
+  }, [isAuthenticated, user?.role])
 
   const addItem = async (product: Omit<CartItem, 'quantity'>) => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isClientRole) {
       const response = await cartApi.addItem(product.productId, 1)
       setItems(response.data.items.map(mapApiItemToCartItem))
       return
@@ -127,7 +129,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const removeItem = async (id: number) => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isClientRole) {
       const response = await cartApi.removeItem(id)
       setItems(response.data.items.map(mapApiItemToCartItem))
       return
@@ -136,7 +138,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const updateQty = async (id: number, delta: number) => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isClientRole) {
       const item = items.find(i => i.id === id)
       if (!item) return
       const nextQuantity = Math.max(0, item.quantity + delta)
