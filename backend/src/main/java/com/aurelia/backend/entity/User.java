@@ -56,6 +56,7 @@ public class User {
     @Builder.Default
     private Boolean active = true;
 
+
     // Relation 1-1 avec Cart (créé automatiquement à l'inscription du client)
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Cart cart;

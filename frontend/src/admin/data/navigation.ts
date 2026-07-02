@@ -28,8 +28,9 @@ export const navigation: NavSection[] = [
         label: 'CRM',
         icon: Users,
         children: [
-          { label: 'Contacts', href: '/admin/crm/contacts' },
-          { label: 'Pipeline', href: '/admin/crm/contacts' },
+          { label: 'Utilisateurs', href: '/admin/crm/contacts' },
+          { label: 'Ajouter livreur', href: '/admin/users/create-driver' },
+          { label: 'Ajouter admin', href: '/admin/users/create-admin' },
         ],
       },
       {

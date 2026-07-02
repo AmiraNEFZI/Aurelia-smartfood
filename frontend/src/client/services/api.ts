@@ -106,4 +106,50 @@ export const orderApi = {
   getById: (id: number) => api.get(`/orders/${id}`),
 }
 
+// ── Admin Stats ──────────────────────────────────────────────────────────────
+export const adminStatsApi = {
+  getStats: () => api.get('/admin/stats'),
+}
+
+// ── Admin Orders ─────────────────────────────────────────────────────────────
+export interface OrderResponse {
+  id: number
+  clientName: string
+  address: string
+  totalAmount: number
+  status: string
+  orderDate: string
+  items: { productName: string; quantity: number; unitPrice: number; subtotal: number }[]
+}
+
+export const adminOrdersApi = {
+  getAll: () => api.get<OrderResponse[]>('/orders'),
+  updateStatus: (id: number, status: string) =>
+    api.patch<OrderResponse>(`/orders/${id}/status`, null, { params: { status } }),
+}
+
+// ── Admin Users ───────────────────────────────────────────────────────────────
+export interface CreateDriverPayload {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  password: string
+}
+
+export interface CreateAdminPayload {
+  firstName: string
+  lastName: string
+  phone?: string
+  email: string
+  password: string
+}
+
+export const adminUsersApi = {
+  getAll: (role?: string) => api.get('/admin/users', { params: role ? { role } : {} }),
+  createDriver: (data: CreateDriverPayload) => api.post('/admin/drivers', data),
+  createAdmin: (data: CreateAdminPayload) => api.post('/admin/admins', data),
+  deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+}
+
 export default api
