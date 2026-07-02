@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Menu, Search, Bell, Sun, Moon, X } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Menu, Search, Bell, Sun, Moon, X, LogOut, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/utils/cn'
 import { useSidebar } from '@/hooks/useSidebar'
@@ -14,23 +14,45 @@ const routeLabels: Record<string, string> = {
   '/admin/settings': 'Settings',
   '/admin/help': 'Help',
   '/admin/components': 'Components',
+  '/admin/users/create-driver': 'Créer un Livreur',
+  '/admin/users/create-admin': 'Créer un Admin',
+  '/admin/products/create': 'Créer un Produit',
 }
 
 const notifications = [
-  { id: '1', text: 'New order received', time: '2 min ago', unread: true },
-  { id: '2', text: 'User registered', time: '18 min ago', unread: true },
-  { id: '3', text: 'Revenue milestone: $10K', time: '3 hours ago', unread: false },
+  { id: '1', text: 'Nouvelle commande reçue', time: 'il y a 2 min', unread: true },
+  { id: '2', text: 'Utilisateur inscrit', time: 'il y a 18 min', unread: true },
+  { id: '3', text: 'Objectif revenu 500 DT atteint', time: 'il y a 3h', unread: false },
 ]
+
+function getAdminUser() {
+  try {
+    const stored = localStorage.getItem('smartfood_user')
+    if (stored) return JSON.parse(stored)
+  } catch { /* ignore */ }
+  return null
+}
 
 export function AdminTopbar() {
   const { toggle: toggleSidebar } = useSidebar()
   const { theme, toggle: toggleTheme } = useTheme()
   const location = useLocation()
+  const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const unreadCount = notifications.filter(n => n.unread).length
 
   const pageTitle = routeLabels[location.pathname] ?? 'Dashboard'
+  const adminUser = getAdminUser()
+  const initials = adminUser
+    ? `${adminUser.firstName?.charAt(0) ?? ''}${adminUser.lastName?.charAt(0) ?? ''}`.toUpperCase()
+    : 'A'
+
+  const handleLogout = () => {
+    localStorage.removeItem('smartfood_user')
+    navigate('/admin/sign-in')
+  }
 
   return (
     <header className="h-16 border-b border-orbit-border bg-orbit-surface/80 backdrop-blur-xl flex items-center px-6 gap-4 flex-shrink-0 relative z-30">
@@ -121,8 +143,56 @@ export function AdminTopbar() {
           {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
         </button>
 
-        <div className="ml-2 w-8 h-8 rounded-full bg-gradient-to-br from-orbit-primary to-orbit-accent flex items-center justify-center text-white text-xs font-bold cursor-pointer">
-          A
+        {/* User avatar + dropdown */}
+        <div className="relative ml-2">
+          <button
+            onClick={() => setShowUserMenu(v => !v)}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-orbit-primary to-orbit-accent flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:ring-2 hover:ring-orbit-primary/40 transition-all"
+          >
+            {initials}
+          </button>
+          <AnimatePresence>
+            {showUserMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-56 bg-orbit-surface2 border border-orbit-border rounded-xl shadow-2xl z-50 overflow-hidden"
+                >
+                  <div className="px-4 py-3 border-b border-orbit-border">
+                    <p className="text-sm font-semibold text-slate-200">
+                      {adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {adminUser?.email ?? 'admin@smartfood.com'}
+                    </p>
+                    <span className="inline-block mt-1 text-[10px] font-semibold text-orbit-primary-light bg-orbit-primary/15 px-2 py-0.5 rounded-full">
+                      ADMIN
+                    </span>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      onClick={() => { setShowUserMenu(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5 transition-colors text-left"
+                    >
+                      <User className="w-4 h-4 text-slate-500" />
+                      Mon profil
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left border-t border-orbit-border mt-1"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Se déconnecter
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AdminSidebar } from './AdminSidebar'
 import { AdminTopbar } from './AdminTopbar'
@@ -6,9 +6,23 @@ import { AdminFooter } from './AdminFooter'
 import { SidebarContext, useSidebarState } from '@/hooks/useSidebar'
 import '@/admin/admin.css'
 
+function getAdminUser() {
+  try {
+    const stored = localStorage.getItem('smartfood_user')
+    if (stored) return JSON.parse(stored)
+  } catch { /* ignore */ }
+  return null
+}
+
 export function AdminLayout() {
   const sidebarState = useSidebarState()
   const location = useLocation()
+
+  // ── Auth guard : si pas de token admin → login ──────────────────────────
+  const adminUser = getAdminUser()
+  if (!adminUser || adminUser.role !== 'ADMIN') {
+    return <Navigate to="/admin/sign-in" replace />
+  }
 
   return (
     <SidebarContext.Provider value={sidebarState}>

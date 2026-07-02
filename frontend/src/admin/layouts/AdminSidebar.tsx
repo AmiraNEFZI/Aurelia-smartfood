@@ -176,6 +176,21 @@ function NavItemLink({ item, collapsed, onNavClick }: { item: NavItem; collapsed
 export function AdminSidebar() {
   const { collapsed, isMobile, mobileOpen, closeMobile } = useSidebar()
 
+  // Lire le vrai user admin depuis localStorage
+  let adminUser: { firstName?: string; lastName?: string; email?: string } | null = null
+  try {
+    const stored = localStorage.getItem('smartfood_user')
+    if (stored) adminUser = JSON.parse(stored)
+  } catch { /* ignore */ }
+
+  const initials = adminUser
+    ? `${adminUser.firstName?.charAt(0) ?? ''}${adminUser.lastName?.charAt(0) ?? ''}`.toUpperCase()
+    : 'A'
+  const displayName = adminUser
+    ? `${adminUser.firstName ?? ''} ${adminUser.lastName ?? ''}`.trim()
+    : 'Admin User'
+  const displayEmail = adminUser?.email ?? 'admin@smartfood.com'
+
   const onNavClick = () => {
     if (isMobile) closeMobile()
   }
@@ -226,13 +241,13 @@ export function AdminSidebar() {
           collapsed && !isMobile && 'justify-center'
         )}>
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orbit-primary to-orbit-accent flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            A
+            {initials}
           </div>
           <AnimatePresence>
             {(!collapsed || isMobile) && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-200 truncate">Admin User</p>
-                <p className="text-xs text-slate-500 truncate">admin@smartfood.io</p>
+                <p className="text-sm font-medium text-slate-200 truncate">{displayName}</p>
+                <p className="text-xs text-slate-500 truncate">{displayEmail}</p>
               </motion.div>
             )}
           </AnimatePresence>
