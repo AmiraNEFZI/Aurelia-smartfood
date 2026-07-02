@@ -46,6 +46,13 @@ public class DataInitializer implements CommandLineRunner {
         admin.setPassword(passwordEncoder.encode("admin123"));
         userRepository.save(admin);
         log.info("✅ Admin prêt : admin@smartfood.com / admin123");
+
+        // Réinitialiser le mot de passe du livreur de test
+        userRepository.findByEmail("aymen@gmail.com").ifPresent(livreur -> {
+            livreur.setPassword(passwordEncoder.encode("livreur123"));
+            userRepository.save(livreur);
+            log.info("✅ Livreur prêt : aymen@gmail.com / livreur123");
+        });
     }
 
     private void initProducts() {
