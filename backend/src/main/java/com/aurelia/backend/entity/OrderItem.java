@@ -24,9 +24,9 @@ public class OrderItem {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    // N OrderItems → 1 Product (référence au produit original)
+    // N OrderItems → 1 Product (référence nullable : si produit supprimé, on garde le snapshot)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id", nullable = true)
     private Product product;
 
     @Min(1)

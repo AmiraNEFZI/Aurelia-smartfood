@@ -37,8 +37,7 @@ export const navigation: NavSection[] = [
         label: 'Produits',
         icon: Package,
         children: [
-          { label: 'Catalogue',       href: '/admin/products' },
-          { label: 'Créer produit',   href: '/admin/products/create' },
+          { label: 'Catalogue', href: '/admin/products' },
         ],
       },
       {
@@ -54,8 +53,7 @@ export const navigation: NavSection[] = [
         label: 'Livreurs',
         icon: Truck,
         children: [
-          { label: 'Liste livreurs',    href: '/admin/crm/contacts' },
-          { label: 'Créer un livreur',  href: '/admin/users/create-driver' },
+          { label: 'Liste livreurs', href: '/admin/crm/contacts' },
         ],
       },
     ],

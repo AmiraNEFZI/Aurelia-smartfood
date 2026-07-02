@@ -2,8 +2,12 @@ package com.aurelia.backend.service;
 
 import com.aurelia.backend.dto.request.ProductRequest;
 import com.aurelia.backend.dto.response.ProductResponse;
+import com.aurelia.backend.entity.CartItem;
+import com.aurelia.backend.entity.OrderItem;
 import com.aurelia.backend.entity.Product;
 import com.aurelia.backend.exception.ResourceNotFoundException;
+import com.aurelia.backend.repository.CartItemRepository;
+import com.aurelia.backend.repository.OrderItemRepository;
 import com.aurelia.backend.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,8 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final CartItemRepository cartItemRepository;
 
     public List<ProductResponse> getAllProducts() {
         return productRepository.findAll()
@@ -54,12 +60,30 @@ public class ProductService {
         return toResponse(productRepository.save(product));
     }
 
+    /**
+     * Suppression d'un produit :
+     * 1. Nullifier product_id dans order_items (on garde les snapshots productName/unitPrice)
+     * 2. Supprimer les cart_items qui référencent ce produit
+     * 3. Supprimer le produit
+     */
     @Transactional
     public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Produit introuvable : " + id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produit introuvable : " + id));
+
+        // 1. Nullifier la référence dans order_items (les commandes gardent leur snapshot)
+        List<OrderItem> orderItems = orderItemRepository.findByProductId(id);
+        for (OrderItem item : orderItems) {
+            item.setProduct(null);
         }
-        productRepository.deleteById(id);
+        orderItemRepository.saveAll(orderItems);
+
+        // 2. Supprimer les cart_items liés (panier = pas de snapshot nécessaire)
+        List<CartItem> cartItems = cartItemRepository.findByProductId(id);
+        cartItemRepository.deleteAll(cartItems);
+
+        // 3. Supprimer le produit
+        productRepository.delete(product);
     }
 
     public ProductResponse toResponse(Product product) {
