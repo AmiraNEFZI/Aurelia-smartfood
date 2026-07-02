@@ -287,7 +287,7 @@ public class OrderService {
     private OrderItemResponse toItemResponse(OrderItem item) {
         return OrderItemResponse.builder()
                 .id(item.getId())
-                .productId(item.getProduct().getId())
+                .productId(item.getProduct() != null ? item.getProduct().getId() : null)
                 .productName(item.getProductName())
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
