@@ -29,6 +29,12 @@ public class UserService {
         return userRepository.findByRole(role).stream().map(this::toResponse).toList();
     }
 
+    public UserResponse getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Utilisateur introuvable."));
+        return toResponse(user);
+    }
+
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
