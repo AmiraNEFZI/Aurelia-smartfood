@@ -77,6 +77,17 @@ public class AuthService {
         return buildAuthResponse(user, token);
     }
 
+    /**
+     * Réinitialiser le mot de passe d'un utilisateur connecté.
+     */
+    @Transactional
+    public void resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Utilisateur introuvable."));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     private AuthResponse buildAuthResponse(User user, String token) {
         return AuthResponse.builder()
                 .token(token)
