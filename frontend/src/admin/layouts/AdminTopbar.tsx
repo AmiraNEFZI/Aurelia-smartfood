@@ -17,6 +17,7 @@ const routeLabels: Record<string, string> = {
   '/admin/users/create-driver': 'Créer un Livreur',
   '/admin/users/create-admin': 'Créer un Admin',
   '/admin/products/create': 'Créer un Produit',
+  '/admin/partners': 'Partenaires',
 }
 
 const notifications = [

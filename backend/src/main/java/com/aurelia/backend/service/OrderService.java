@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final PartnerService partnerService;
 
     /**
      * Workflow checkout :
@@ -51,16 +53,22 @@ public class OrderService {
             throw new BusinessException("Le panier est vide. Ajoutez des produits avant de commander.");
         }
 
-        // Calculer le total et vérifier les stocks
+        // Calculer le total et vérifier les stocks (Aurelia + partenaires)
         BigDecimal total = BigDecimal.ZERO;
         for (CartItem item : cart.getItems()) {
             Product product = item.getProduct();
-            if (product.getStock() < item.getQuantity()) {
+            int qte = item.getQuantity();
+
+            // Vérifier disponibilité : stock Aurelia OU partenaire
+            boolean aStockAurelia = product.getStock() >= qte;
+            boolean aStockPartenaire = partnerService.isProductAvailableAnywhere(product.getId());
+
+            if (!aStockAurelia && !aStockPartenaire) {
                 throw new BusinessException(
-                        "Stock insuffisant pour : " + product.getName()
-                        + " (disponible : " + product.getStock() + ")");
+                        "Produit indisponible : " + product.getName()
+                        + " — ni en stock Aurelia ni chez nos partenaires.");
             }
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(qte)));
         }
 
         // Créer la commande
@@ -73,21 +81,40 @@ public class OrderService {
                 .totalAmount(total)
                 .build();
 
-        // Créer les OrderItems (snapshot)
+        // Créer les OrderItems avec sourcing intelligent
         for (CartItem item : cart.getItems()) {
             Product product = item.getProduct();
+            int qte = item.getQuantity();
+
             OrderItem orderItem = OrderItem.builder()
                     .order(order)
                     .product(product)
-                    .quantity(item.getQuantity())
+                    .quantity(qte)
                     .unitPrice(product.getPrice())
                     .productName(product.getName())
+                    .sourceType("AURELIA")
                     .build();
-            order.getItems().add(orderItem);
 
-            // Décrémenter le stock
-            product.setStock(product.getStock() - item.getQuantity());
-            productRepository.save(product);
+            if (product.getStock() >= qte) {
+                // ✅ Stock Aurelia suffisant
+                product.setStock(product.getStock() - qte);
+                productRepository.save(product);
+                log.info("Stock Aurelia utilisé pour '{}' (restant: {})", product.getName(), product.getStock());
+            } else {
+                // 🔄 Sourcing automatique via partenaire
+                Optional<PartnerProduct> partenaire = partnerService.sourcerProduit(product.getId(), qte);
+                if (partenaire.isPresent()) {
+                    orderItem.setSourceType("PARTENAIRE");
+                    orderItem.setSourcePartner(partenaire.get().getPartner());
+                    log.info("🔄 Sourcing partenaire '{}' pour '{}'",
+                            partenaire.get().getPartner().getName(), product.getName());
+                } else {
+                    // Ne devrait pas arriver (vérifié avant), mais sécurité
+                    throw new BusinessException("Produit indisponible : " + product.getName());
+                }
+            }
+
+            order.getItems().add(orderItem);
         }
 
         orderRepository.save(order);
@@ -292,6 +319,9 @@ public class OrderService {
                 .quantity(item.getQuantity())
                 .unitPrice(item.getUnitPrice())
                 .subtotal(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .sourceType(item.getSourceType() != null ? item.getSourceType() : "AURELIA")
+                .sourcePartnerId(item.getSourcePartner() != null ? item.getSourcePartner().getId() : null)
+                .sourcePartnerName(item.getSourcePartner() != null ? item.getSourcePartner().getName() : null)
                 .build();
     }
 }

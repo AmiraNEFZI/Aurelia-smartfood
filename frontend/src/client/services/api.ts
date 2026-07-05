@@ -8,7 +8,6 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Attach JWT token to every request if present
 api.interceptors.request.use(config => {
   try {
     if (config.data instanceof FormData && config.headers) {
@@ -17,39 +16,21 @@ api.interceptors.request.use(config => {
     const stored = localStorage.getItem('smartfood_user')
     if (stored) {
       const user = JSON.parse(stored)
-      if (user?.token) {
-        config.headers.Authorization = `Bearer ${user.token}`
-      }
+      if (user?.token) config.headers.Authorization = `Bearer ${user.token}`
     }
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return config
 })
 
-// ── Auth ────────────────────────────────────────────────────────────────────
-export interface RegisterPayload {
-  firstName: string
-  lastName: string
-  phone: string
-  email: string
-  password: string
-}
-
-export interface LoginPayload {
-  email: string
-  password: string
-}
-
+// ── Auth ──────────────────────────────────────────────────────────────────────
+export interface RegisterPayload { firstName: string; lastName: string; phone: string; email: string; password: string }
+export interface LoginPayload { email: string; password: string }
 export const authApi = {
-  register: (data: RegisterPayload) =>
-    api.post('/auth/register', data),
-
-  login: (data: LoginPayload) =>
-    api.post('/auth/login', data),
+  register: (data: RegisterPayload) => api.post('/auth/register', data),
+  login: (data: LoginPayload) => api.post('/auth/login', data),
 }
 
-// ── Products ─────────────────────────────────────────────────────────────────
+// ── Products ──────────────────────────────────────────────────────────────────
 export const productApi = {
   getAll: () => api.get('/products'),
   getById: (id: number) => api.get(`/products/${id}`),
@@ -67,29 +48,9 @@ export function resolveProductImage(image?: string | null) {
   return image
 }
 
-// ── Orders ───────────────────────────────────────────────────────────────────
-export interface CheckoutPayload {
-  address: string
-  paymentMethod: 'ESPECES' | 'CARTE_BANCAIRE'
-}
-
-export interface CartItemResponse {
-  id: number
-  productId: number
-  productName: string
-  productImage: string
-  unitPrice: number
-  quantity: number
-  subtotal: number
-}
-
-export interface CartResponse {
-  id: number
-  items: CartItemResponse[]
-  total: number
-  itemCount: number
-}
-
+// ── Cart ──────────────────────────────────────────────────────────────────────
+export interface CartItemResponse { id: number; productId: number; productName: string; productImage: string; unitPrice: number; quantity: number; subtotal: number }
+export interface CartResponse { id: number; items: CartItemResponse[]; total: number; itemCount: number }
 export const cartApi = {
   getCart: () => api.get<CartResponse>('/cart'),
   addItem: (productId: number, quantity: number) => api.post<CartResponse>('/cart/items', { productId, quantity }),
@@ -97,21 +58,20 @@ export const cartApi = {
   removeItem: (itemId: number) => api.delete<CartResponse>(`/cart/items/${itemId}`),
 }
 
+// ── Orders ────────────────────────────────────────────────────────────────────
+export interface CheckoutPayload { address: string; paymentMethod: 'ESPECES' | 'CARTE_BANCAIRE' }
 export const orderApi = {
-  checkout: (data: CheckoutPayload) =>
-    api.post('/orders/checkout', data),
-
+  checkout: (data: CheckoutPayload) => api.post('/orders/checkout', data),
   getMyOrders: () => api.get('/orders/my'),
-
   getById: (id: number) => api.get(`/orders/${id}`),
 }
 
-// ── Admin Stats ──────────────────────────────────────────────────────────────
+// ── Admin Stats ───────────────────────────────────────────────────────────────
 export const adminStatsApi = {
   getStats: () => api.get('/admin/stats'),
 }
 
-// ── Admin Orders ─────────────────────────────────────────────────────────────
+// ── Admin Orders ──────────────────────────────────────────────────────────────
 export interface OrderResponse {
   id: number
   clientName: string
@@ -122,26 +82,23 @@ export interface OrderResponse {
   status: string
   orderDate: string
   paymentMethod?: string
-  items: { productName: string; quantity: number; unitPrice: number; subtotal: number }[]
+  items: {
+    productName: string
+    quantity: number
+    unitPrice: number
+    subtotal: number
+    sourceType?: string
+    sourcePartnerName?: string
+  }[]
 }
-
 export const adminOrdersApi = {
   getAll: () => api.get<OrderResponse[]>('/orders'),
-  updateStatus: (id: number, status: string) =>
-    api.patch<OrderResponse>(`/orders/${id}/status`, null, { params: { status } }),
-  assignDriver: (orderId: number, driverId: number) =>
-    api.patch<OrderResponse>(`/orders/${orderId}/assign`, null, { params: { driverId } }),
+  updateStatus: (id: number, status: string) => api.patch<OrderResponse>(`/orders/${id}/status`, null, { params: { status } }),
+  assignDriver: (orderId: number, driverId: number) => api.patch<OrderResponse>(`/orders/${orderId}/assign`, null, { params: { driverId } }),
 }
 
 // ── Admin Products ────────────────────────────────────────────────────────────
-export interface ProductPayload {
-  name: string
-  description?: string
-  price: number
-  stock: number
-  image?: string
-}
-
+export interface ProductPayload { name: string; description?: string; price: number; stock: number; image?: string }
 export const adminProductsApi = {
   getAll: () => api.get('/products'),
   create: (data: ProductPayload) => api.post('/products', data),
@@ -150,27 +107,41 @@ export const adminProductsApi = {
 }
 
 // ── Admin Users ───────────────────────────────────────────────────────────────
-export interface CreateDriverPayload {
-  firstName: string
-  lastName: string
-  phone: string
-  email: string
-  password: string
-}
-
-export interface CreateAdminPayload {
-  firstName: string
-  lastName: string
-  phone?: string
-  email: string
-  password: string
-}
-
+export interface CreateDriverPayload { firstName: string; lastName: string; phone: string; email: string; password: string }
+export interface CreateAdminPayload { firstName: string; lastName: string; phone?: string; email: string; password: string }
 export const adminUsersApi = {
   getAll: (role?: string) => api.get('/admin/users', { params: role ? { role } : {} }),
   createDriver: (data: CreateDriverPayload) => api.post('/admin/drivers', data),
   createAdmin: (data: CreateAdminPayload) => api.post('/admin/admins', data),
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+}
+
+// ── Partners ──────────────────────────────────────────────────────────────────
+export interface PartnerProductData {
+  id: number; partnerId: number; partnerName: string
+  productId: number; productName: string; productImage?: string
+  stock: number; price: number; isAvailable: boolean
+}
+export interface PartnerData {
+  id: number; name: string; email?: string; phone?: string
+  address?: string; contactPerson?: string; website?: string
+  description?: string; isActive: boolean
+  products: PartnerProductData[]; totalProducts: number; totalStock: number
+}
+export const partnerApi = {
+  getAll: () => api.get<PartnerData[]>('/partners'),
+  getById: (id: number) => api.get<PartnerData>(`/partners/${id}`),
+  create: (data: Partial<PartnerData>) => api.post<PartnerData>('/partners', data),
+  update: (id: number, data: Partial<PartnerData>) => api.put<PartnerData>(`/partners/${id}`, data),
+  toggle: (id: number) => api.patch<PartnerData>(`/partners/${id}/toggle`),
+  delete: (id: number) => api.delete(`/partners/${id}`),
+  getProducts: (partnerId: number) => api.get<PartnerProductData[]>(`/partners/${partnerId}/products`),
+  addProduct: (partnerId: number, data: { productId: number; stock: number; price: number; isAvailable?: boolean }) =>
+    api.post<PartnerProductData>(`/partners/${partnerId}/products`, data),
+  updateProduct: (ppId: number, data: { stock: number; price: number; isAvailable?: boolean }) =>
+    api.put<PartnerProductData>(`/partners/products/${ppId}`, data),
+  removeProduct: (ppId: number) => api.delete(`/partners/products/${ppId}`),
+  checkAvailability: (productId: number) => api.get<boolean>(`/partners/availability/${productId}`),
 }
 
 export default api

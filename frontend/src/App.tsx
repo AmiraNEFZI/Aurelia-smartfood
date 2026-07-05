@@ -39,6 +39,7 @@ import { CreateDriverPage as CreateDriverPageOld } from '@/admin/pages/drivers/C
 import { CreateDriverPage } from '@/admin/pages/crm/CreateDriverPage'
 import { CreateAdminPage } from '@/admin/pages/crm/CreateAdminPage'
 import { OrdersPage } from '@/admin/pages/orders/OrdersPage'
+import { PartnersPage } from '@/admin/pages/partners/PartnersPage'
 
 export default function App() {
   return (
@@ -78,6 +79,7 @@ export default function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="drivers/create" element={<CreateDriverPageOld />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="partners" element={<PartnersPage />} />
         {/* CRM — create user pages */}
         <Route path="users/create-driver" element={<CreateDriverPage />} />
         <Route path="users/create-admin" element={<CreateAdminPage />} />

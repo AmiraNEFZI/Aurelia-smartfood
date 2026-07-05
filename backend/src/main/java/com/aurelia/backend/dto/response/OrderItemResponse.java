@@ -18,4 +18,8 @@ public class OrderItemResponse {
     private Integer quantity;
     private BigDecimal unitPrice;
     private BigDecimal subtotal;
+    // Source de l'article (AURELIA ou PARTENAIRE)
+    private String sourceType;
+    private Long sourcePartnerId;
+    private String sourcePartnerName;
 }

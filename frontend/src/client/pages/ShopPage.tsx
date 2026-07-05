@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '@/client/context/CartContext'
-import { productApi, resolveProductImage } from '@/client/services/api'
+import { productApi, partnerApi, resolveProductImage } from '@/client/services/api'
 
 interface Product {
   id: number
@@ -15,9 +15,6 @@ interface Product {
 const FALLBACK: Product[] = [
   { id: 1, name: 'Bananes', description: 'Bananes fraîches, riches en potassium.', price: 2.99, stock: 100, image: '/fruitables/img/fruite-item-3.jpg' },
   { id: 2, name: 'Orange Navel', description: 'Oranges juteuses et sucrées.', price: 3.49, stock: 80, image: '/fruitables/img/fruite-item-1.jpg' },
-  { id: 3, name: 'Raisins Muscat', description: 'Raisins doux et parfumés.', price: 4.99, stock: 60, image: '/fruitables/img/fruite-item-5.jpg' },
-  { id: 4, name: 'Brocoli', description: 'Brocoli riche en fibres et vitamines.', price: 3.35, stock: 50, image: '/fruitables/img/vegetable-item-2.jpg' },
-  { id: 5, name: 'Tomates Cerises', description: 'Tomates rouges, parfaites pour vos salades.', price: 3.99, stock: 70, image: '/fruitables/img/vegetable-item-1.jpg' },
 ]
 
 export function ShopPage() {
@@ -26,11 +23,22 @@ export function ShopPage() {
   const [maxPrice, setMaxPrice] = useState(20)
   const [loading, setLoading] = useState(true)
   const [addedId, setAddedId] = useState<number | null>(null)
+  const [partnerAvail, setPartnerAvail] = useState<Record<number, boolean>>({})
   const { addItem } = useCart()
 
   useEffect(() => {
     productApi.getAll()
-      .then(res => setProducts(res.data))
+      .then(res => {
+        const prods: Product[] = res.data
+        setProducts(prods)
+        // Vérifier disponibilité partenaire pour les produits en rupture
+        const outOfStock = prods.filter(p => p.stock === 0)
+        outOfStock.forEach(p => {
+          partnerApi.checkAvailability(p.id)
+            .then(r => setPartnerAvail(prev => ({ ...prev, [p.id]: r.data })))
+            .catch(() => {})
+        })
+      })
       .catch(() => setProducts(FALLBACK))
       .finally(() => setLoading(false))
   }, [])
@@ -141,9 +149,14 @@ export function ShopPage() {
                             onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
                             onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
                           />
-                          {product.stock === 0 && (
+                          {product.stock === 0 && !partnerAvail[product.id] && (
                             <div className="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 rounded-end" style={{ fontSize: '11px', marginTop: '10px' }}>
                               Rupture de stock
+                            </div>
+                          )}
+                          {product.stock === 0 && partnerAvail[product.id] && (
+                            <div className="position-absolute top-0 start-0 text-white px-2 py-1 rounded-end" style={{ fontSize: '11px', marginTop: '10px', backgroundColor: '#6366f1' }}>
+                              🤝 Via partenaire
                             </div>
                           )}
                           {product.stock > 0 && product.stock < 10 && (
@@ -162,11 +175,13 @@ export function ShopPage() {
                             <button
                               className={`btn btn-sm rounded-pill px-3 ${addedId === product.id ? 'btn-success' : 'btn-primary'}`}
                               onClick={() => handleAddToCart(product)}
-                              disabled={product.stock === 0}
+                              disabled={product.stock === 0 && !partnerAvail[product.id]}
                               style={{ transition: 'all 0.3s', fontSize: '12px' }}
                             >
                               {addedId === product.id ? (
                                 <><i className="fa fa-check me-1"></i>Ajouté !</>
+                              ) : product.stock === 0 && !partnerAvail[product.id] ? (
+                                <>Indisponible</>
                               ) : (
                                 <><i className="fa fa-shopping-bag me-1"></i>Ajouter</>
                               )}

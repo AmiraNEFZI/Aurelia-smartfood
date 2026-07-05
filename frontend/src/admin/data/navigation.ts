@@ -11,6 +11,7 @@ import {
   Truck,
   ShoppingBag,
   ClipboardList,
+  Handshake,
 } from 'lucide-react'
 import type { NavSection } from '@/types'
 
@@ -54,6 +55,13 @@ export const navigation: NavSection[] = [
         icon: Truck,
         children: [
           { label: 'Liste livreurs', href: '/admin/crm/contacts' },
+        ],
+      },
+      {
+        label: 'Partenaires',
+        icon: Handshake,
+        children: [
+          { label: 'Tous les partenaires', href: '/admin/partners' },
         ],
       },
     ],
