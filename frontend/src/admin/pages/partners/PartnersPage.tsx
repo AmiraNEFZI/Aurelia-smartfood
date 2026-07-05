@@ -112,9 +112,14 @@ function ProductModal({ partnerId, pp, products, onClose, onSaved }: {
     if (!productId) { setError('Sélectionnez un produit.'); return }
     setError('')
     setLoading(true)
+    // Normaliser la virgule en point pour le prix (format français → JSON)
+    const normalizedPrice = parseFloat(price.replace(',', '.'))
+    const normalizedStock = parseInt(stock, 10)
+    if (isNaN(normalizedPrice) || normalizedPrice < 0) { setError('Prix invalide.'); setLoading(false); return }
+    if (isNaN(normalizedStock) || normalizedStock < 0) { setError('Stock invalide.'); setLoading(false); return }
     try {
-      if (isEdit) await partnerApi.updateProduct(pp!.id, { stock: Number(stock), price: Number(price) })
-      else await partnerApi.addProduct(partnerId, { productId, stock: Number(stock), price: Number(price) })
+      if (isEdit) await partnerApi.updateProduct(pp!.id, { stock: normalizedStock, price: normalizedPrice })
+      else await partnerApi.addProduct(partnerId, { productId, stock: normalizedStock, price: normalizedPrice })
       onSaved()
       onClose()
     } catch (err: unknown) {
@@ -146,7 +151,19 @@ function ProductModal({ partnerId, pp, products, onClose, onSaved }: {
             )}
             {isEdit && <p className="text-sm text-slate-300 font-semibold">{pp!.productName}</p>}
             <Input label="Stock disponible *" type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} required prefix={<Package className="w-3.5 h-3.5" />} />
-            <Input label="Prix partenaire (DT) *" type="number" step="0.01" min="0" value={price} onChange={e => setPrice(e.target.value)} required hint="Prix auquel le partenaire fournit ce produit" />
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Prix partenaire (DT) *</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="w-full bg-orbit-surface2 border border-orbit-border rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-orbit-primary"
+                placeholder="ex: 1.95 ou 1,95"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                required
+              />
+              <p className="text-xs text-slate-600 mt-1">Prix auquel le partenaire fournit ce produit</p>
+            </div>
           </div>
           <div className="flex gap-3 px-6 py-4 border-t border-orbit-border">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl text-sm text-slate-400 border border-orbit-border hover:bg-white/5 transition-colors">Annuler</button>
