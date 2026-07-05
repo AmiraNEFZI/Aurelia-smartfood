@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useCart } from '@/client/context/CartContext'
-import { productApi, resolveProductImage } from '@/client/services/api'
+import { productApi, partnerApi, resolveProductImage } from '@/client/services/api'
 
 interface Product {
   id: number
@@ -25,6 +25,7 @@ export function ShopDetailPage() {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
+  const [partnerAvailable, setPartnerAvailable] = useState<boolean | null>(null) // null = loading
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
@@ -32,10 +33,32 @@ export function ShopDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    productApi.getById(Number(id))
-      .then(res => setProduct(res.data))
-      .catch(() => setProduct(FALLBACK[Number(id)] ?? null))
-      .finally(() => setLoading(false))
+    const loadProduct = async () => {
+      setLoading(true)
+      try {
+        const res = await productApi.getById(Number(id))
+        const prod: Product = res.data
+        setProduct(prod)
+        // Si rupture Aurelia → vérifier partenaires avant d'afficher
+        if (prod.stock === 0) {
+          try {
+            const availRes = await partnerApi.checkAvailability(prod.id)
+            setPartnerAvailable(availRes.data === true)
+          } catch {
+            setPartnerAvailable(false)
+          }
+        } else {
+          setPartnerAvailable(null) // pas besoin
+        }
+      } catch {
+        const fallback = FALLBACK[Number(id)] ?? null
+        setProduct(fallback)
+        setPartnerAvailable(false)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProduct()
   }, [id])
 
   const handleAddToCart = () => {
@@ -114,7 +137,12 @@ export function ShopDetailPage() {
               {product.stock > 0 && product.stock < 10 && (
                 <span className="badge bg-primary text-white rounded-pill px-3 py-2 ms-2">Stock limité</span>
               )}
-              {product.stock === 0 && (
+              {product.stock === 0 && partnerAvailable === true && (
+                <span className="badge rounded-pill px-3 py-2 ms-2 text-white" style={{ backgroundColor: '#6366f1' }}>
+                  🤝 Disponible via partenaire
+                </span>
+              )}
+              {product.stock === 0 && partnerAvailable === false && (
                 <span className="badge bg-danger rounded-pill px-3 py-2 ms-2">Rupture de stock</span>
               )}
             </div>
@@ -134,14 +162,31 @@ export function ShopDetailPage() {
 
             {/* Stock info */}
             <div className="d-flex align-items-center gap-2 mb-4">
-              <i className={`fas fa-circle ${product.stock > 0 ? 'text-success' : 'text-danger'}`} style={{ fontSize: '10px' }}></i>
-              <small className={product.stock > 0 ? 'text-success fw-semibold' : 'text-danger fw-semibold'}>
-                {product.stock > 0 ? `En stock (${product.stock} disponibles)` : 'Rupture de stock'}
-              </small>
+              {product.stock > 0 ? (
+                <>
+                  <i className="fas fa-circle text-success" style={{ fontSize: '10px' }}></i>
+                  <small className="text-success fw-semibold">En stock ({product.stock} disponibles)</small>
+                </>
+              ) : partnerAvailable === true ? (
+                <>
+                  <i className="fas fa-circle" style={{ fontSize: '10px', color: '#6366f1' }}></i>
+                  <small className="fw-semibold" style={{ color: '#6366f1' }}>Disponible via un partenaire Aurelia SmartFood</small>
+                </>
+              ) : partnerAvailable === false ? (
+                <>
+                  <i className="fas fa-circle text-danger" style={{ fontSize: '10px' }}></i>
+                  <small className="text-danger fw-semibold">Rupture de stock — Indisponible</small>
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-circle text-muted" style={{ fontSize: '10px' }}></i>
+                  <small className="text-muted">Vérification de disponibilité...</small>
+                </>
+              )}
             </div>
 
-            {/* Quantity + Actions */}
-            {product.stock > 0 && (
+            {/* Quantity + Actions — disponible si stock Aurelia OU partenaire */}
+            {(product.stock > 0 || partnerAvailable === true) && (
               <>
                 <div className="d-flex align-items-center gap-4 mb-4">
                   <label className="fw-semibold">Quantité :</label>
@@ -157,7 +202,11 @@ export function ShopDetailPage() {
                     </span>
                     <button
                       className="btn btn-outline-secondary"
-                      onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
+                      onClick={() => setQuantity(q => {
+                        // Si stock Aurelia = 0 mais partenaire dispo, pas de limite connue → max 10
+                        const maxQty = product.stock > 0 ? product.stock : 10
+                        return Math.min(maxQty, q + 1)
+                      })}
                     >
                       <i className="fa fa-plus" style={{ fontSize: '10px' }}></i>
                     </button>

@@ -27,20 +27,39 @@ export function ShopPage() {
   const { addItem } = useCart()
 
   useEffect(() => {
-    productApi.getAll()
-      .then(res => {
-        const prods: Product[] = res.data
+    const loadAll = async () => {
+      setLoading(true)
+      try {
+        const res = await productApi.getAll()
+        const prods: Product[] = Array.isArray(res.data) ? res.data : FALLBACK
         setProducts(prods)
-        // Vérifier disponibilité partenaire pour les produits en rupture
+
+        // Pour les produits en rupture, vérifier les partenaires EN PARALLÈLE
+        // et attendre toutes les réponses avant de finir le loading
         const outOfStock = prods.filter(p => p.stock === 0)
-        outOfStock.forEach(p => {
-          partnerApi.checkAvailability(p.id)
-            .then(r => setPartnerAvail(prev => ({ ...prev, [p.id]: r.data })))
-            .catch(() => {})
-        })
-      })
-      .catch(() => setProducts(FALLBACK))
-      .finally(() => setLoading(false))
+        if (outOfStock.length > 0) {
+          const availChecks = await Promise.allSettled(
+            outOfStock.map(p =>
+              partnerApi.checkAvailability(p.id)
+                .then(r => ({ id: p.id, available: r.data === true }))
+                .catch(() => ({ id: p.id, available: false }))
+            )
+          )
+          const avail: Record<number, boolean> = {}
+          availChecks.forEach(result => {
+            if (result.status === 'fulfilled') {
+              avail[result.value.id] = result.value.available
+            }
+          })
+          setPartnerAvail(avail)
+        }
+      } catch {
+        setProducts(FALLBACK)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadAll()
   }, [])
 
   const filtered = products.filter(p =>
