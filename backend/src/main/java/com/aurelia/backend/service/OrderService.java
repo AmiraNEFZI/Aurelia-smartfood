@@ -57,6 +57,10 @@ public class OrderService {
         BigDecimal total = BigDecimal.ZERO;
         for (CartItem item : cart.getItems()) {
             Product product = item.getProduct();
+            // Sécurité : produit supprimé entre temps
+            if (product == null) {
+                throw new BusinessException("Un produit de votre panier n'est plus disponible. Veuillez vider votre panier et recommencer.");
+            }
             int qte = item.getQuantity();
 
             // Vérifier disponibilité : stock Aurelia OU partenaire

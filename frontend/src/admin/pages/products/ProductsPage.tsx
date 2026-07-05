@@ -173,7 +173,15 @@ export function ProductsPage() {
     setLoading(true)
     adminProductsApi.getAll()
       .then(res => setProducts(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setProducts([]))
+      .catch(err => {
+        // Si 401 → token expiré, rediriger vers login
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          localStorage.removeItem('smartfood_user')
+          window.location.href = '/admin/sign-in'
+          return
+        }
+        setProducts([])
+      })
       .finally(() => setLoading(false))
   }
 

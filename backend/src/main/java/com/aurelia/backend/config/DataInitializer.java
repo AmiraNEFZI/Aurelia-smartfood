@@ -2,7 +2,6 @@ package com.aurelia.backend.config;
 
 import com.aurelia.backend.entity.Product;
 import com.aurelia.backend.entity.User;
-import com.aurelia.backend.enums.Role;
 import com.aurelia.backend.repository.ProductRepository;
 import com.aurelia.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

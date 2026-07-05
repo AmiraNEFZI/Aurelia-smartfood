@@ -93,7 +93,7 @@ public class CartService {
         if (quantity <= 0) {
             cart.getItems().remove(item);
         } else {
-            if (item.getProduct().getStock() < quantity) {
+            if (item.getProduct() != null && item.getProduct().getStock() < quantity) {
                 throw new BusinessException("Stock insuffisant.");
             }
             item.setQuantity(quantity);
@@ -150,6 +150,18 @@ public class CartService {
     }
 
     private CartItemResponse toItemResponse(CartItem item) {
+        // Sécurité : si le produit a été supprimé entre temps
+        if (item.getProduct() == null) {
+            return CartItemResponse.builder()
+                    .id(item.getId())
+                    .productId(null)
+                    .productName("Produit supprimé")
+                    .productImage(null)
+                    .unitPrice(BigDecimal.ZERO)
+                    .quantity(item.getQuantity())
+                    .subtotal(BigDecimal.ZERO)
+                    .build();
+        }
         BigDecimal subtotal = item.getProduct().getPrice()
                 .multiply(BigDecimal.valueOf(item.getQuantity()));
         return CartItemResponse.builder()

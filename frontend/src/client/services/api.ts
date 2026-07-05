@@ -22,6 +22,31 @@ api.interceptors.request.use(config => {
   return config
 })
 
+// Intercepteur réponse : si 401 sur une route admin → déconnexion auto
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error?.response?.status === 401) {
+      const url = error?.config?.url ?? ''
+      const isAdminRoute = url.includes('/admin') || url.includes('/orders') || url.includes('/partners')
+      const storedUser = localStorage.getItem('smartfood_user')
+      if (isAdminRoute && storedUser) {
+        try {
+          const user = JSON.parse(storedUser)
+          if (user?.role === 'ADMIN') {
+            // Token expiré pour l'admin → redirection login admin
+            localStorage.removeItem('smartfood_user')
+            if (!window.location.pathname.includes('/admin/sign-in')) {
+              window.location.href = '/admin/sign-in'
+            }
+          }
+        } catch { /* ignore */ }
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export interface RegisterPayload { firstName: string; lastName: string; phone: string; email: string; password: string }
 export interface LoginPayload { email: string; password: string }
