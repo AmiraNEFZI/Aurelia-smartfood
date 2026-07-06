@@ -21,6 +21,7 @@ interface CartContextValue {
   removeItem: (id: number) => Promise<void>
   updateQty: (id: number, delta: number) => Promise<void>
   clearCart: () => Promise<void>
+  refreshCart: () => Promise<void>
   totalItems: number
   subtotal: number
 }
@@ -139,6 +140,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     saveLocal(next)
   }
 
+  // ── refreshCart ───────────────────────────────────────────────────────────
+  const refreshCart = async () => {
+    if (isClient) {
+      try {
+        const res = await cartApi.getCart()
+        setItems(res.data.items.map(mapApiItem))
+        clearLocal()
+      } catch { /* ignore */ }
+    }
+  }
+
   // ── clearCart ─────────────────────────────────────────────────────────────
   const clearCart = async () => {
     setItems([])
@@ -158,7 +170,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, clearCart, totalItems, subtotal }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQty, clearCart, refreshCart, totalItems, subtotal }}>
       {children}
     </CartContext.Provider>
   )

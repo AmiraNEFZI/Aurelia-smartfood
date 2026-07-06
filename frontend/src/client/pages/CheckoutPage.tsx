@@ -4,15 +4,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '@/client/context/CartContext'
 import { useAuth } from '@/client/context/AuthContext'
 import { useNotifications } from '@/client/context/NotificationContext'
-import { orderApi } from '@/client/services/api'
+import { orderApi, cartApi } from '@/client/services/api'
 
 export function CheckoutPage() {
-  const { items, subtotal, clearCart } = useCart()
+  const { items, subtotal, clearCart, refreshCart } = useCart()
   const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
 
   const [address, setAddress] = useState('')
-  const [paymentMethod] = useState<'ESPECES'>('ESPECES') // only cash for now
+  const [paymentMethod] = useState<'ESPECES'>('ESPECES')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -22,7 +22,14 @@ export function CheckoutPage() {
   const shipping = 2.0
   const total = subtotal + shipping
 
-  // Redirect if not authenticated or cart is empty
+  // Forcer rechargement du panier depuis le backend au montage
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshCart()
+    }
+  }, [isAuthenticated])
+
+  // Redirect si non authentifié ou panier vide
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login?redirect=/checkout')
