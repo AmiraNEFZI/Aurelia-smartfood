@@ -96,7 +96,7 @@ export function HomePage() {
         <div className="container py-5">
           <div className="row g-5 align-items-center">
             <div className="col-md-12 col-lg-7">
-              <h4 className="mb-3 text-secondary">Plateforme de livraison alimentaire intelligente</h4>
+              <h4 className="mb-3 text-secondary">Votre marketplace de livraison rapide</h4>
               <h1 className="mb-5 display-3 text-primary">Aurelia Smart Food : votre quotidien simplifié</h1>
               <p className="mb-4 text-muted fs-5">Découvrez une large sélection de produits de qualité, avec un service fiable et des livraisons rapides.</p>
               <div className="d-flex gap-3">
