@@ -14,6 +14,7 @@ import com.aurelia.backend.repository.CartRepository;
 import com.aurelia.backend.repository.ProductRepository;
 import com.aurelia.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,8 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    @Lazy
+    private final PartnerService partnerService;
 
     /**
      * Récupérer le panier du client connecté.
@@ -51,7 +54,12 @@ public class CartService {
                         "Produit introuvable : " + request.getProductId()));
 
         if (product.getStock() < request.getQuantity()) {
-            throw new BusinessException("Stock insuffisant pour le produit : " + product.getName());
+            // Vérifier si un partenaire peut fournir ce produit
+            boolean partnerAvailable = partnerService.isProductAvailableAnywhere(product.getId());
+            if (!partnerAvailable) {
+                throw new BusinessException("Stock insuffisant pour le produit : " + product.getName());
+            }
+            // Partenaire disponible → on autorise l'ajout au panier
         }
 
         Optional<CartItem> existingItem =
@@ -60,7 +68,9 @@ public class CartService {
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
             int newQty = item.getQuantity() + request.getQuantity();
-            if (product.getStock() < newQty) {
+            // Vérifier stock total disponible (Aurelia + partenaire)
+            int totalStock = product.getStock() + partnerService.getBestPartnerStock(product.getId());
+            if (totalStock < newQty) {
                 throw new BusinessException("Stock insuffisant pour le produit : " + product.getName());
             }
             item.setQuantity(newQty);
