@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '@/client/context/CartContext'
-import { productApi, resolveProductImage } from '@/client/services/api'
+import { productApi, partnerApi, resolveProductImage } from '@/client/services/api'
 
 interface Product {
   id: number
@@ -10,6 +10,7 @@ interface Product {
   price: number
   stock: number
   image: string
+  partnerAvailable?: boolean
 }
 
 // Fallback products when API is not yet connected
@@ -35,10 +36,41 @@ export function HomePage() {
   const { addItem } = useCart()
 
   useEffect(() => {
-    productApi.getAll()
-      .then(res => setProducts(res.data))
-      .catch(() => setProducts(FALLBACK_PRODUCTS))
-      .finally(() => setLoading(false))
+    let active = true
+
+    async function load() {
+      try {
+        const res = await productApi.getAll()
+        if (!active) return
+
+        const prods: Product[] = Array.isArray(res.data) ? res.data : FALLBACK_PRODUCTS
+
+        // Enrichir chaque produit en rupture avec la disponibilité partenaire
+        const enriched = await Promise.all(
+          prods.map(async (p) => {
+            if (p.stock === 0) {
+              try {
+                const r = await partnerApi.checkAvailability(p.id)
+                return { ...p, partnerAvailable: r.data === true }
+              } catch {
+                return { ...p, partnerAvailable: false }
+              }
+            }
+            return { ...p, partnerAvailable: undefined }
+          })
+        )
+
+        if (!active) return
+        setProducts(enriched)
+      } catch {
+        if (active) setProducts(FALLBACK_PRODUCTS)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { active = false }
   }, [])
 
   const truncate = (text: string, max = 100) =>
@@ -164,7 +196,12 @@ export function HomePage() {
                         Stock limité
                       </div>
                     )}
-                    {product.stock === 0 && (
+                    {product.stock === 0 && product.partnerAvailable === true && (
+                      <div className="text-white px-3 py-1 rounded position-absolute" style={{ top: '10px', left: '10px', fontSize: '11px', backgroundColor: '#6366f1' }}>
+                        🤝 Via partenaire
+                      </div>
+                    )}
+                    {product.stock === 0 && product.partnerAvailable !== true && (
                       <div className="text-white bg-danger px-3 py-1 rounded position-absolute" style={{ top: '10px', left: '10px', fontSize: '11px' }}>
                         Rupture de stock
                       </div>
@@ -181,11 +218,13 @@ export function HomePage() {
                         <button
                           className={`btn rounded-pill px-3 ${addedId === product.id ? 'btn-success' : 'btn-outline-primary'}`}
                           onClick={() => handleAddToCart(product)}
-                          disabled={product.stock === 0}
+                          disabled={product.stock === 0 && product.partnerAvailable !== true}
                           style={{ transition: 'all 0.3s', fontSize: '13px' }}
                         >
                           {addedId === product.id ? (
                             <><i className="fa fa-check me-1"></i>Ajouté !</>
+                          ) : product.stock === 0 && product.partnerAvailable !== true ? (
+                            <>Indisponible</>
                           ) : (
                             <><i className="fa fa-shopping-bag me-1"></i>Ajouter</>
                           )}

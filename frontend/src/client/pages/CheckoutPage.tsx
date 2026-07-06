@@ -55,7 +55,7 @@ export function CheckoutPage() {
         message: `Votre commande #${orderId} a bien été enregistrée.`,
         orderId,
       })
-      clearCart()
+      clearCart()  // async mais on n'attend pas — la navigation se fait immédiatement
       navigate(`/order-confirmation/${orderId}`, { replace: true })
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }

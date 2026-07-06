@@ -25,7 +25,8 @@ export function ShopDetailPage() {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
-  const [partnerAvailable, setPartnerAvailable] = useState<boolean | null>(null) // null = loading
+  const [partnerAvailable, setPartnerAvailable] = useState<boolean | null>(null)
+  const [partnerStock, setPartnerStock] = useState<number>(0) // stock réel du meilleur partenaire
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
@@ -33,32 +34,46 @@ export function ShopDetailPage() {
 
   useEffect(() => {
     if (!id) return
+    let cancelled = false
+
     const loadProduct = async () => {
       setLoading(true)
       try {
         const res = await productApi.getById(Number(id))
+        if (cancelled) return
+
         const prod: Product = res.data
         setProduct(prod)
-        // Si rupture Aurelia → vérifier partenaires avant d'afficher
+
         if (prod.stock === 0) {
           try {
-            const availRes = await partnerApi.checkAvailability(prod.id)
+            const [availRes, stockRes] = await Promise.all([
+              partnerApi.checkAvailability(prod.id),
+              partnerApi.getBestPartnerStock(prod.id),
+            ])
+            if (cancelled) return
             setPartnerAvailable(availRes.data === true)
+            setPartnerStock(typeof stockRes.data === 'number' ? stockRes.data : 0)
           } catch {
-            setPartnerAvailable(false)
+            if (!cancelled) { setPartnerAvailable(false); setPartnerStock(0) }
           }
         } else {
-          setPartnerAvailable(null) // pas besoin
+          setPartnerAvailable(null)
+          setPartnerStock(0)
         }
       } catch {
-        const fallback = FALLBACK[Number(id)] ?? null
-        setProduct(fallback)
-        setPartnerAvailable(false)
+        if (!cancelled) {
+          const fallback = FALLBACK[Number(id)] ?? null
+          setProduct(fallback)
+          setPartnerAvailable(false)
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
+
     loadProduct()
+    return () => { cancelled = true }
   }, [id])
 
   const handleAddToCart = () => {
@@ -170,7 +185,9 @@ export function ShopDetailPage() {
               ) : partnerAvailable === true ? (
                 <>
                   <i className="fas fa-circle" style={{ fontSize: '10px', color: '#6366f1' }}></i>
-                  <small className="fw-semibold" style={{ color: '#6366f1' }}>Disponible via un partenaire Aurelia SmartFood</small>
+                  <small className="fw-semibold" style={{ color: '#6366f1' }}>
+                    Disponible via partenaire Aurelia ({partnerStock} unité{partnerStock > 1 ? 's' : ''} disponible{partnerStock > 1 ? 's' : ''})
+                  </small>
                 </>
               ) : partnerAvailable === false ? (
                 <>
@@ -203,8 +220,8 @@ export function ShopDetailPage() {
                     <button
                       className="btn btn-outline-secondary"
                       onClick={() => setQuantity(q => {
-                        // Si stock Aurelia = 0 mais partenaire dispo, pas de limite connue → max 10
-                        const maxQty = product.stock > 0 ? product.stock : 10
+                        // Stock max = stock Aurelia si > 0, sinon stock réel du meilleur partenaire
+                        const maxQty = product.stock > 0 ? product.stock : partnerStock
                         return Math.min(maxQty, q + 1)
                       })}
                     >

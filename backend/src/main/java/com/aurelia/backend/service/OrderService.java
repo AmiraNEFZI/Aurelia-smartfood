@@ -53,19 +53,29 @@ public class OrderService {
             throw new BusinessException("Le panier est vide. Ajoutez des produits avant de commander.");
         }
 
+        // Filtrer les items valides (produit non supprimé) — copie pour éviter ConcurrentModificationException
+        List<CartItem> validItems = cart.getItems().stream()
+                .filter(item -> item.getProduct() != null)
+                .collect(java.util.stream.Collectors.toList());
+
+        if (validItems.isEmpty()) {
+            throw new BusinessException("Les produits de votre panier ne sont plus disponibles. Veuillez les supprimer et recommencer.");
+        }
+
         // Calculer le total et vérifier les stocks (Aurelia + partenaires)
         BigDecimal total = BigDecimal.ZERO;
-        for (CartItem item : cart.getItems()) {
+        for (CartItem item : validItems) {
             Product product = item.getProduct();
-            // Sécurité : produit supprimé entre temps
-            if (product == null) {
-                throw new BusinessException("Un produit de votre panier n'est plus disponible. Veuillez vider votre panier et recommencer.");
-            }
             int qte = item.getQuantity();
 
             // Vérifier disponibilité : stock Aurelia OU partenaire
             boolean aStockAurelia = product.getStock() >= qte;
-            boolean aStockPartenaire = partnerService.isProductAvailableAnywhere(product.getId());
+            boolean aStockPartenaire = false;
+            try {
+                aStockPartenaire = partnerService.isProductAvailableAnywhere(product.getId());
+            } catch (Exception e) {
+                log.warn("Impossible de vérifier disponibilité partenaire pour produit #{}: {}", product.getId(), e.getMessage());
+            }
 
             if (!aStockAurelia && !aStockPartenaire) {
                 throw new BusinessException(
@@ -86,7 +96,7 @@ public class OrderService {
                 .build();
 
         // Créer les OrderItems avec sourcing intelligent
-        for (CartItem item : cart.getItems()) {
+        for (CartItem item : validItems) {
             Product product = item.getProduct();
             int qte = item.getQuantity();
 
@@ -106,15 +116,21 @@ public class OrderService {
                 log.info("Stock Aurelia utilisé pour '{}' (restant: {})", product.getName(), product.getStock());
             } else {
                 // 🔄 Sourcing automatique via partenaire
-                Optional<PartnerProduct> partenaire = partnerService.sourcerProduit(product.getId(), qte);
-                if (partenaire.isPresent()) {
-                    orderItem.setSourceType("PARTENAIRE");
-                    orderItem.setSourcePartner(partenaire.get().getPartner());
-                    log.info("🔄 Sourcing partenaire '{}' pour '{}'",
-                            partenaire.get().getPartner().getName(), product.getName());
-                } else {
-                    // Ne devrait pas arriver (vérifié avant), mais sécurité
-                    throw new BusinessException("Produit indisponible : " + product.getName());
+                try {
+                    Optional<PartnerProduct> partenaire = partnerService.sourcerProduit(product.getId(), qte);
+                    if (partenaire.isPresent()) {
+                        orderItem.setSourceType("PARTENAIRE");
+                        orderItem.setSourcePartner(partenaire.get().getPartner());
+                        log.info("🔄 Sourcing partenaire '{}' pour '{}'",
+                                partenaire.get().getPartner().getName(), product.getName());
+                    } else {
+                        throw new BusinessException("Produit indisponible : " + product.getName());
+                    }
+                } catch (BusinessException e) {
+                    throw e;
+                } catch (Exception e) {
+                    log.error("Erreur sourcing partenaire pour '{}': {}", product.getName(), e.getMessage());
+                    throw new BusinessException("Erreur lors du traitement de la commande pour : " + product.getName());
                 }
             }
 

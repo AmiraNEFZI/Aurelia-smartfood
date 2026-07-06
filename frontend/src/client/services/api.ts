@@ -167,6 +167,7 @@ export const partnerApi = {
     api.put<PartnerProductData>(`/partners/products/${ppId}`, data),
   removeProduct: (ppId: number) => api.delete(`/partners/products/${ppId}`),
   checkAvailability: (productId: number) => api.get<boolean>(`/partners/availability/${productId}`),
+  getBestPartnerStock: (productId: number) => api.get<number>(`/partners/availability/${productId}/stock`),
 }
 
 export default api

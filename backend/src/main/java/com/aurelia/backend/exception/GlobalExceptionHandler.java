@@ -51,11 +51,13 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
-    // Erreur générique
+    // Erreur générique — log + message détaillé
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
+        // Log complet pour debugging
+        ex.printStackTrace();
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Une erreur interne est survenue", null);
+                "Une erreur interne est survenue : " + ex.getMessage(), null);
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(

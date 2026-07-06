@@ -58,7 +58,7 @@ export function CartPage() {
                       </h5>
                       <button
                         className="btn btn-sm btn-outline-danger rounded-pill"
-                        onClick={clearCart}
+                        onClick={() => clearCart()}
                       >
                         <i className="fas fa-trash me-1"></i>Vider le panier
                       </button>

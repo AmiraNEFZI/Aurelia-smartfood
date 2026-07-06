@@ -189,6 +189,36 @@ public class PartnerService {
         return !partnerProductRepository.findAvailableByProductId(productId).isEmpty();
     }
 
+    /**
+     * Retourne le stock du meilleur partenaire pour ce produit
+     * (même algorithme que sourcerProduit : prix le plus bas → aléatoire si égalité).
+     * Retourne 0 si aucun partenaire disponible.
+     */
+    public int getBestPartnerStock(Long productId) {
+        List<PartnerProduct> candidats = partnerProductRepository.findAvailableByProductId(productId)
+                .stream()
+                .filter(pp -> pp.getStock() > 0)
+                .toList();
+
+        if (candidats.isEmpty()) return 0;
+
+        BigDecimal prixMin = candidats.get(0).getPrice(); // déjà trié ASC
+
+        List<PartnerProduct> meilleurPrix = candidats.stream()
+                .filter(pp -> pp.getPrice().compareTo(prixMin) == 0)
+                .toList();
+
+        PartnerProduct choisi;
+        if (meilleurPrix.size() == 1) {
+            choisi = meilleurPrix.get(0);
+        } else {
+            List<PartnerProduct> modifiable = new java.util.ArrayList<>(meilleurPrix);
+            Collections.shuffle(modifiable);
+            choisi = modifiable.get(0);
+        }
+        return choisi.getStock();
+    }
+
     // ── Statistiques ─────────────────────────────────────────────────────────
 
     public long countActivePartners() {

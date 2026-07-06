@@ -20,16 +20,15 @@ interface CartContextValue {
   addItem: (product: Omit<CartItem, 'quantity'>) => Promise<void>
   removeItem: (id: number) => Promise<void>
   updateQty: (id: number, delta: number) => Promise<void>
-  clearCart: () => void
+  clearCart: () => Promise<void>
   totalItems: number
   subtotal: number
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
-
 const STORAGE_KEY = 'smartfood_cart'
 
-function mapApiItemToCartItem(item: CartItemResponse): CartItem {
+function mapApiItem(item: CartItemResponse): CartItem {
   return {
     id: item.id,
     productId: item.productId,
@@ -41,133 +40,122 @@ function mapApiItemToCartItem(item: CartItemResponse): CartItem {
   }
 }
 
+function loadLocal(): CartItem[] {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY)
+    return s ? JSON.parse(s) : []
+  } catch { return [] }
+}
+
+function saveLocal(items: CartItem[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+}
+
+function clearLocal() {
+  localStorage.removeItem(STORAGE_KEY)
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth()
-  // ADMIN et LIVREUR n'ont pas de panier — on ignore les appels API cart
-  const isClientRole = !user || user.role === 'CLIENT'
+  const isClient = isAuthenticated && (!user || user.role === 'CLIENT')
 
-  const [items, setItems] = useState<CartItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
-    }
-  })
+  const [items, setItems] = useState<CartItem[]>(() => loadLocal())
 
-  const persistLocalCart = (nextItems: CartItem[]) => {
-    setItems(nextItems)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems))
-  }
-
-  const loadLocalCart = (): CartItem[] => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      const items: CartItem[] = stored ? JSON.parse(stored) : []
-      return items.map(item => ({
-        ...item,
-        img: resolveProductImage(item.img),
-      }))
-    } catch {
-      return []
-    }
-  }
-
-  const fetchCart = async () => {
-    try {
-      const response = await cartApi.getCart()
-      setItems(response.data.items.map(mapApiItemToCartItem))
-    } catch {
-      setItems(loadLocalCart())
-    }
-  }
-
-  const syncLocalCartToBackend = async () => {
-    const localItems = loadLocalCart()
-    if (!localItems.length) {
-      return
-    }
-    for (const item of localItems) {
-      try {
-        await cartApi.addItem(item.productId, item.quantity)
-      } catch {
-        // ignore item sync failure for now
-      }
-    }
-    localStorage.removeItem(STORAGE_KEY)
-  }
-
+  // ── Chargement initial ───────────────────────────────────────────────────
   useEffect(() => {
-    if (isAuthenticated && isClientRole) {
-      syncLocalCartToBackend()
-        .then(fetchCart)
+    if (isClient) {
+      // Client connecté : charger depuis le backend (source de vérité)
+      cartApi.getCart()
+        .then(res => {
+          const backendItems = res.data.items.map(mapApiItem)
+          setItems(backendItems)
+          clearLocal() // le backend est la source de vérité → vider le local
+        })
         .catch(() => {
-          const fallback = loadLocalCart()
-          setItems(fallback)
+          // Si le backend échoue, garder le local en attendant
+          setItems(loadLocal())
         })
     } else if (!isAuthenticated) {
-      setItems(loadLocalCart())
+      // Non connecté : localStorage uniquement
+      setItems(loadLocal())
+    } else {
+      // Admin/Livreur : panier vide, pas d'appel API
+      setItems([])
     }
-    // ADMIN/LIVREUR : on ne touche pas au panier
   }, [isAuthenticated, user?.role])
 
+  // ── addItem ───────────────────────────────────────────────────────────────
   const addItem = async (product: Omit<CartItem, 'quantity'>) => {
-    if (isAuthenticated && isClientRole) {
-      const response = await cartApi.addItem(product.productId, 1)
-      setItems(response.data.items.map(mapApiItemToCartItem))
+    if (isClient) {
+      // Backend : source de vérité
+      const res = await cartApi.addItem(product.productId, 1)
+      setItems(res.data.items.map(mapApiItem))
+      clearLocal()
       return
     }
-
-    const current = loadLocalCart()
+    // Non connecté : localStorage
+    const current = loadLocal()
     const existing = current.find(i => i.productId === product.productId)
-    const nextItems = existing
-      ? current.map(i =>
-          i.productId === product.productId ? { ...i, quantity: i.quantity + 1 } : i
-        )
-      : [...current, { ...product, productId: product.id, quantity: 1, id: product.id, img: resolveProductImage(product.img) }]
-    persistLocalCart(nextItems)
+    const next = existing
+      ? current.map(i => i.productId === product.productId ? { ...i, quantity: i.quantity + 1 } : i)
+      : [...current, { ...product, productId: product.id, quantity: 1, id: product.id }]
+    setItems(next)
+    saveLocal(next)
   }
 
+  // ── removeItem ────────────────────────────────────────────────────────────
   const removeItem = async (id: number) => {
-    if (isAuthenticated && isClientRole) {
-      const response = await cartApi.removeItem(id)
-      setItems(response.data.items.map(mapApiItemToCartItem))
+    if (isClient) {
+      const res = await cartApi.removeItem(id)
+      setItems(res.data.items.map(mapApiItem))
+      clearLocal()
       return
     }
-    persistLocalCart(items.filter(item => item.id !== id))
+    const next = items.filter(i => i.id !== id)
+    setItems(next)
+    saveLocal(next)
   }
 
+  // ── updateQty ─────────────────────────────────────────────────────────────
   const updateQty = async (id: number, delta: number) => {
-    if (isAuthenticated && isClientRole) {
+    if (isClient) {
       const item = items.find(i => i.id === id)
       if (!item) return
-      const nextQuantity = Math.max(0, item.quantity + delta)
-      if (nextQuantity === 0) {
-        await cartApi.removeItem(id)
-        const response = await cartApi.getCart()
-        setItems(response.data.items.map(mapApiItemToCartItem))
-        return
+      const nextQty = Math.max(0, item.quantity + delta)
+      if (nextQty === 0) {
+        const res = await cartApi.removeItem(id)
+        setItems(res.data.items.map(mapApiItem))
+      } else {
+        const res = await cartApi.updateItemQuantity(id, nextQty)
+        setItems(res.data.items.map(mapApiItem))
       }
-      const response = await cartApi.updateItemQuantity(id, nextQuantity)
-      setItems(response.data.items.map(mapApiItemToCartItem))
+      clearLocal()
       return
     }
-    persistLocalCart(
-      items
-        .map(i =>
-          i.id === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i
-        )
-        .filter(i => i.quantity > 0)
-    )
+    const next = items
+      .map(i => i.id === id ? { ...i, quantity: Math.max(0, i.quantity + delta) } : i)
+      .filter(i => i.quantity > 0)
+    setItems(next)
+    saveLocal(next)
   }
 
-  const clearCart = () => {
+  // ── clearCart ─────────────────────────────────────────────────────────────
+  const clearCart = async () => {
     setItems([])
-    localStorage.removeItem(STORAGE_KEY)
+    clearLocal()
+    // Si connecté : vider aussi le backend item par item
+    if (isClient) {
+      try {
+        const current = await cartApi.getCart()
+        for (const item of current.data.items) {
+          await cartApi.removeItem(item.id)
+        }
+      } catch { /* ignore */ }
+    }
   }
 
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
+  const totalItems = items.reduce((s, i) => s + i.quantity, 0)
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
 
   return (
     <CartContext.Provider value={{ items, addItem, removeItem, updateQty, clearCart, totalItems, subtotal }}>

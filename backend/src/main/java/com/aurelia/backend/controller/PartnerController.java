@@ -113,4 +113,10 @@ public class PartnerController {
     public ResponseEntity<Boolean> checkAvailability(@PathVariable Long productId) {
         return ResponseEntity.ok(partnerService.isProductAvailableAnywhere(productId));
     }
+
+    @GetMapping("/availability/{productId}/stock")
+    @Operation(summary = "Stock max disponible chez le meilleur partenaire (public)")
+    public ResponseEntity<Integer> getPartnerStock(@PathVariable Long productId) {
+        return ResponseEntity.ok(partnerService.getBestPartnerStock(productId));
+    }
 }
