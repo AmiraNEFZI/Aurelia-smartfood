@@ -65,17 +65,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // ── Chargement initial ───────────────────────────────────────────────────
   useEffect(() => {
     if (isClient) {
-      // Client connecté : charger depuis le backend (source de vérité)
-      cartApi.getCart()
-        .then(res => {
+      // Client connecté : d'abord sync le localStorage vers le backend, puis charger
+      const syncAndLoad = async () => {
+        const localItems = loadLocal()
+        // Si des articles locaux existent → les envoyer au backend avant de charger
+        if (localItems.length > 0) {
+          for (const item of localItems) {
+            try {
+              await cartApi.addItem(item.productId, item.quantity)
+            } catch { /* ignore */ }
+          }
+          clearLocal()
+        }
+        // Charger le panier depuis le backend (source de vérité)
+        try {
+          const res = await cartApi.getCart()
           const backendItems = res.data.items.map(mapApiItem)
           setItems(backendItems)
-          clearLocal() // le backend est la source de vérité → vider le local
-        })
-        .catch(() => {
-          // Si le backend échoue, garder le local en attendant
+        } catch {
           setItems(loadLocal())
-        })
+        }
+      }
+      syncAndLoad()
     } else if (!isAuthenticated) {
       // Non connecté : localStorage uniquement
       setItems(loadLocal())
