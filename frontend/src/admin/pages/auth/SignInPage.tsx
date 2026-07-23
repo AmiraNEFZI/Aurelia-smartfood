@@ -64,7 +64,7 @@ export function SignInPage() {
             <span className="text-gradient">entièrement maîtrisée</span>
           </h2>
           <p className="text-slate-500 text-base leading-relaxed mb-8">
-            Gérez produits, commandes, clients et statistiques depuis une interface admin élégante.
+            Gérez produits, commandes, clients et statistiques en toute simplicité.
           </p>
           <div className="grid grid-cols-2 gap-4">
             {[
@@ -141,12 +141,7 @@ export function SignInPage() {
               required
             />
 
-            {/* Hint */}
-            <div className="rounded-lg bg-orbit-surface2 border border-orbit-border p-3 text-xs text-slate-500">
-              <p className="font-semibold text-slate-400 mb-1">Compte admin par défaut :</p>
-              <p>Email : <span className="text-slate-300">admin@smartfood.com</span></p>
-              <p>Mot de passe : <span className="text-slate-300">admin123</span></p>
-            </div>
+            {/* Aucun hint d'identifiants en production */}
 
             <Button
               type="submit"

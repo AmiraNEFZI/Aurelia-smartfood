@@ -15,6 +15,7 @@ interface Order {
 }
 
 // ── Statuts livreur disponibles ───────────────────────────────────────────────
+// EN_LIGNE est déprécié côté backend — supprimé de l'UI (remplacé par DISPONIBLE)
 const DRIVER_STATUSES = [
   {
     key: 'DISPONIBLE',
@@ -25,16 +26,6 @@ const DRIVER_STATUSES = [
     border: 'border-emerald-500/30',
     dot: 'bg-emerald-400',
     dotPulse: 'animate-pulse',
-  },
-  {
-    key: 'EN_LIGNE',
-    label: 'En ligne',
-    desc: 'Connecté mais pas encore disponible',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/15',
-    border: 'border-cyan-500/30',
-    dot: 'bg-cyan-400',
-    dotPulse: '',
   },
   {
     key: 'OCCUPE',
@@ -113,25 +104,35 @@ function StatusPicker({ current, onChange, loading = false }: {
               <div className="px-3 py-2 border-b border-orbit-border">
                 <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Changer mon statut</p>
               </div>
-              {DRIVER_STATUSES.map(s => (
-                <button
-                  key={s.key}
-                  onClick={() => { onChange(s.key); setOpen(false) }}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5',
-                    current === s.key && 'bg-white/5'
-                  )}
-                >
-                  <span className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', s.dot)} />
-                  <div className="flex-1">
-                    <p className={cn('text-sm font-semibold', s.color)}>{s.label}</p>
-                    <p className="text-xs text-slate-600">{s.desc}</p>
-                  </div>
-                  {current === s.key && (
-                    <span className="text-xs text-slate-500">✓</span>
-                  )}
-                </button>
-              ))}
+              {DRIVER_STATUSES.map(s => {
+                // Un livreur OCCUPE ne peut passer qu'à HORS_LIGNE (pas DISPONIBLE directement)
+                const isDisabled = current === 'OCCUPE' && s.key === 'DISPONIBLE'
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => { if (!isDisabled) { onChange(s.key); setOpen(false) } }}
+                    disabled={isDisabled}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
+                      isDisabled
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'hover:bg-white/5 cursor-pointer',
+                      current === s.key && 'bg-white/5'
+                    )}
+                  >
+                    <span className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', s.dot)} />
+                    <div className="flex-1">
+                      <p className={cn('text-sm font-semibold', s.color)}>{s.label}</p>
+                      <p className="text-xs text-slate-600">
+                        {isDisabled ? 'Libéré automatiquement à la livraison' : s.desc}
+                      </p>
+                    </div>
+                    {current === s.key && (
+                      <span className="text-xs text-slate-500">✓</span>
+                    )}
+                  </button>
+                )
+              })}
             </motion.div>
           </>
         )}
@@ -184,16 +185,16 @@ export function DriverDashboardPage() {
     }
   }
 
-  const total     = orders.length
-  const enCours   = orders.filter(o => ['EN_LIVRAISON', 'PRISE_EN_CHARGE'].includes(o.status)).length
-  const livrees   = orders.filter(o => o.status === 'LIVREE').length
-  const enAttente = orders.filter(o => o.status === 'EN_ATTENTE').length
+  const total    = orders.length
+  const enCours  = orders.filter(o => ['EN_LIVRAISON', 'PRISE_EN_CHARGE'].includes(o.status)).length
+  const livrees  = orders.filter(o => o.status === 'LIVREE').length
+  const annulees = orders.filter(o => o.status === 'ANNULEE').length
 
   const kpis = [
-    { icon: Package,     label: 'Total assignées',  value: total,     color: 'bg-orbit-primary/15 text-orbit-primary-light' },
-    { icon: Truck,       label: 'En cours',         value: enCours,   color: 'bg-cyan-500/15 text-cyan-400' },
-    { icon: CheckCircle, label: 'Livrées',           value: livrees,   color: 'bg-emerald-500/15 text-emerald-400' },
-    { icon: Clock,       label: 'En attente',        value: enAttente, color: 'bg-amber-500/15 text-amber-400' },
+    { icon: Package,     label: 'Total assignées', value: total,     color: 'bg-orbit-primary/15 text-orbit-primary-light' },
+    { icon: Truck,       label: 'En cours',        value: enCours,   color: 'bg-cyan-500/15 text-cyan-400' },
+    { icon: CheckCircle, label: 'Livrées',          value: livrees,   color: 'bg-emerald-500/15 text-emerald-400' },
+    { icon: Clock,       label: 'Annulées',         value: annulees,  color: 'bg-red-500/15 text-red-400' },
   ]
 
   const recent = [...orders]

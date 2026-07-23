@@ -18,12 +18,12 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f4f7
 
 /* Client layout — compensate for fixed navbar and topbar */
 .client-main {
-  padding-top: 132px;
+  padding-top: 121px;
 }
 
 @media (max-width: 991px) {
   .client-main {
-    padding-top: 118px;
+    padding-top: 108px;
   }
 }
 
@@ -225,9 +225,15 @@ body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f4f7
 
 .hero-header {
   background: linear-gradient(180deg, rgba(14, 78, 154, 0.08) 0%, rgba(247, 251, 255, 0.96) 100%);
-  margin-top: 0;
+  margin-top: 0 !important;
   padding-top: 3rem;
   margin-bottom: 0;
+}
+
+/* Annule le margin-top injecté par fruitables/css/style.css sur hero-header et page-header */
+.hero-header,
+.page-header {
+  margin-top: 0 !important;
 }
 
 .hero-header .display-3 {

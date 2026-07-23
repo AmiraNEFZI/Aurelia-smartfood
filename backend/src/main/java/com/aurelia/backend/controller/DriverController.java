@@ -22,7 +22,14 @@ public class DriverController {
 
     /**
      * LIVREUR : mettre à jour son propre statut de disponibilité.
-     * Ex: se connecter (EN_LIGNE → DISPONIBLE), se déconnecter (HORS_LIGNE).
+     *
+     * DISPONIBLE → entre dans la file FIFO (disponibleDepuis = now())
+     *              et peut recevoir des commandes.
+     * HORS_LIGNE → sort de la file (disponibleDepuis = null).
+     * OCCUPE     → ne peut pas être mis manuellement (géré automatiquement
+     *              à l'assignation d'une commande).
+     *
+     * PATCH /api/driver/status?status=DISPONIBLE
      */
     @PatchMapping("/status")
     @PreAuthorize("hasRole('LIVREUR')")

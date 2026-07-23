@@ -52,6 +52,15 @@ public class User {
     @Column(name = "statut_livreur")
     private StatutLivreur statutLivreur;
 
+    /**
+     * Timestamp du dernier passage à DISPONIBLE.
+     * Critère de tri FIFO : le livreur qui attend depuis le plus longtemps
+     * reçoit la prochaine commande. Remis à now() à chaque libération.
+     * Nullable → Hibernate ajoute la colonne sans toucher aux lignes existantes.
+     */
+    @Column(name = "disponible_depuis")
+    private java.time.LocalDateTime disponibleDepuis;
+
     @Column(name = "active", nullable = false)
     @Builder.Default
     private Boolean active = true;

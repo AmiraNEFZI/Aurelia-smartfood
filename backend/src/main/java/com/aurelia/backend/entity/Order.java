@@ -63,7 +63,7 @@ public class Order {
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 
-    // Verrouillage optimiste pour éviter les conflits d'assignation livreur
+    // Verrouillage optimiste pour éviter les conflits d'assignation simultanée
     @Version
     private Long version;
 }

@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useScrollToTop } from '@/hooks/useScrollToTop'
 
 // ── Client layout & pages ──────────────────────────────────────────────────
 import { ClientLayout } from '@/client/layouts/ClientLayout'
@@ -42,6 +43,8 @@ import { OrdersPage } from '@/admin/pages/orders/OrdersPage'
 import { PartnersPage } from '@/admin/pages/partners/PartnersPage'
 
 export default function App() {
+  useScrollToTop()
+
   return (
     <Routes>
       {/* ── Client routes ── */}

@@ -5,19 +5,16 @@ import com.aurelia.backend.dto.response.OrderItemResponse;
 import com.aurelia.backend.dto.response.OrderResponse;
 import com.aurelia.backend.entity.*;
 import com.aurelia.backend.enums.StatutCommande;
-import com.aurelia.backend.enums.StatutLivreur;
 import com.aurelia.backend.enums.StatutPaiement;
 import com.aurelia.backend.exception.BusinessException;
 import com.aurelia.backend.exception.ResourceNotFoundException;
 import com.aurelia.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,20 +23,25 @@ import java.util.Optional;
 @Slf4j
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final CartRepository cartRepository;
-    private final UserRepository userRepository;
+    private final OrderRepository   orderRepository;
+    private final CartRepository    cartRepository;
+    private final UserRepository    userRepository;
     private final ProductRepository productRepository;
-    private final PartnerService partnerService;
+    private final PartnerService    partnerService;
+    private final AssignationService assignationService;   // ← Amél. 2
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Checkout
+    // ══════════════════════════════════════════════════════════════════════════
 
     /**
      * Workflow checkout :
-     * 1. Récupérer le panier du client
-     * 2. Créer la commande
-     * 3. Copier les CartItems → OrderItems (snapshot prix + nom)
-     * 4. Décrémenter le stock des produits
-     * 5. Vider le panier
-     * 6. Assigner automatiquement un livreur disponible
+     * 1. Récupère le panier du client
+     * 2. Vérifie les stocks (Aurelia + partenaires)
+     * 3. Crée la commande + OrderItems (snapshot prix/nom, sourcing intelligent)
+     * 4. Décrémente les stocks
+     * 5. Vide le panier
+     * 6. Délègue l'assignation à AssignationService (transaction REQUIRES_NEW)
      */
     @Transactional
     public OrderResponse checkout(String email, CreateOrderRequest request) {
@@ -53,39 +55,38 @@ public class OrderService {
             throw new BusinessException("Le panier est vide. Ajoutez des produits avant de commander.");
         }
 
-        // Filtrer les items valides (produit non supprimé) — copie pour éviter ConcurrentModificationException
         List<CartItem> validItems = cart.getItems().stream()
                 .filter(item -> item.getProduct() != null)
                 .collect(java.util.stream.Collectors.toList());
 
         if (validItems.isEmpty()) {
-            throw new BusinessException("Les produits de votre panier ne sont plus disponibles. Veuillez les supprimer et recommencer.");
+            throw new BusinessException(
+                "Les produits de votre panier ne sont plus disponibles. Veuillez les supprimer et recommencer.");
         }
 
-        // Calculer le total et vérifier les stocks (Aurelia + partenaires)
+        // ── Vérification stocks et calcul total ──
         BigDecimal total = BigDecimal.ZERO;
         for (CartItem item : validItems) {
             Product product = item.getProduct();
             int qte = item.getQuantity();
 
-            // Vérifier disponibilité : stock Aurelia OU partenaire
-            boolean aStockAurelia = product.getStock() >= qte;
+            boolean aStockAurelia    = product.getStock() >= qte;
             boolean aStockPartenaire = false;
             try {
                 aStockPartenaire = partnerService.isProductAvailableAnywhere(product.getId());
             } catch (Exception e) {
-                log.warn("Impossible de vérifier disponibilité partenaire pour produit #{}: {}", product.getId(), e.getMessage());
+                log.warn("Impossible de vérifier dispo partenaire produit #{}: {}", product.getId(), e.getMessage());
             }
 
             if (!aStockAurelia && !aStockPartenaire) {
                 throw new BusinessException(
-                        "Produit indisponible : " + product.getName()
-                        + " — ni en stock Aurelia ni chez nos partenaires.");
+                    "Produit indisponible : " + product.getName()
+                    + " — ni en stock Aurelia ni chez nos partenaires.");
             }
             total = total.add(product.getPrice().multiply(BigDecimal.valueOf(qte)));
         }
 
-        // Créer la commande
+        // ── Création commande ──
         Order order = Order.builder()
                 .user(client)
                 .address(request.getAddress())
@@ -95,7 +96,7 @@ public class OrderService {
                 .totalAmount(total)
                 .build();
 
-        // Créer les OrderItems avec sourcing intelligent
+        // ── OrderItems + sourcing ──
         for (CartItem item : validItems) {
             Product product = item.getProduct();
             int qte = item.getQuantity();
@@ -110,12 +111,10 @@ public class OrderService {
                     .build();
 
             if (product.getStock() >= qte) {
-                // ✅ Stock Aurelia suffisant
                 product.setStock(product.getStock() - qte);
                 productRepository.save(product);
                 log.info("Stock Aurelia utilisé pour '{}' (restant: {})", product.getName(), product.getStock());
             } else {
-                // 🔄 Sourcing automatique via partenaire
                 try {
                     Optional<PartnerProduct> partenaire = partnerService.sourcerProduit(product.getId(), qte);
                     if (partenaire.isPresent()) {
@@ -133,72 +132,34 @@ public class OrderService {
                     throw new BusinessException("Erreur lors du traitement de la commande pour : " + product.getName());
                 }
             }
-
             order.getItems().add(orderItem);
         }
 
-        orderRepository.save(order);
+        orderRepository.saveAndFlush(order); // flush immédiat pour que REQUIRES_NEW le voie
 
-        // Vider le panier
+        // ── Vider le panier ──
         cart.getItems().clear();
         cartRepository.save(cart);
 
-        // Assigner un livreur disponible (si disponible)
-        assignerLivreur(order);
-
-        return toResponse(order);
-    }
-
-    /**
-     * Assigne le premier livreur DISPONIBLE en FIFO
-     * (celui qui est disponible depuis le plus longtemps).
-     * Utilise @Version (optimistic locking) pour éviter les doublons.
-     */
-    @Transactional
-    public void assignerLivreur(Order order) {
-        List<User> livreursDisponibles =
-                userRepository.findLivreursParStatut(StatutLivreur.DISPONIBLE);
-
-        if (livreursDisponibles.isEmpty()) {
-            log.info("Aucun livreur disponible pour la commande #{}", order.getId());
-            return;
+        // ── Amél. 2 : délégation à AssignationService (REQUIRES_NEW) ──
+        // L'appel est fait APRÈS le commit de la commande en base pour que
+        // AssignationService puisse la voir dans sa propre transaction.
+        // La commande est déjà sauvegardée, on peut passer son id en toute sécurité.
+        try {
+            assignationService.tenterAssignation(order.getId());
+        } catch (Exception e) {
+            // L'assignation est best-effort : une erreur ici ne doit pas annuler la commande
+            log.warn("Assignation immédiate échouée pour commande #{} — le scheduler prendra le relais: {}",
+                    order.getId(), e.getMessage());
         }
 
-        // FIFO : prendre le premier de la liste (le plus ancien disponible)
-        User livreur = livreursDisponibles.get(0);
-
-        order.setDriver(livreur);
-        order.setStatus(StatutCommande.PRISE_EN_CHARGE);
-
-        livreur.setStatutLivreur(StatutLivreur.OCCUPE);
-        userRepository.save(livreur);
-        orderRepository.save(order);
-
-        log.info("Livreur {} assigné à la commande #{}", livreur.getEmail(), order.getId());
+        return toResponse(orderRepository.findById(order.getId()).orElse(order));
     }
 
-    /**
-     * Scheduler : toutes les 2 minutes, vérifie les commandes EN_ATTENTE
-     * depuis plus de 10 minutes sans livreur → réessaie l'assignation FIFO.
-     */
-    @Scheduled(fixedDelay = 120_000) // every 2 minutes
-    @Transactional
-    public void reessayerAssignation() {
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(10);
+    // ══════════════════════════════════════════════════════════════════════════
+    // Lecture
+    // ══════════════════════════════════════════════════════════════════════════
 
-        List<Order> commandesEnAttente = orderRepository.findByStatus(StatutCommande.EN_ATTENTE);
-
-        for (Order order : commandesEnAttente) {
-            if (order.getOrderDate().isBefore(cutoff) && order.getDriver() == null) {
-                log.info("Timeout 10min: réessai assignation pour commande #{}", order.getId());
-                assignerLivreur(order);
-            }
-        }
-    }
-
-    /**
-     * Historique des commandes d'un client.
-     */
     public List<OrderResponse> getMyOrders(String email) {
         User client = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable."));
@@ -206,36 +167,25 @@ public class OrderService {
                 .stream().map(this::toResponse).toList();
     }
 
-    /**
-     * Détail d'une commande.
-     */
     public OrderResponse getOrderById(Long id, String email) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Commande introuvable : " + id));
         User user = userRepository.findByEmail(email).orElseThrow();
 
-        // Un client ne peut voir que ses propres commandes
-        boolean isAdmin = user.getRole().name().equals("ADMIN");
-        boolean isOwner = order.getUser().getId().equals(user.getId());
+        boolean isAdmin  = user.getRole().name().equals("ADMIN");
+        boolean isOwner  = order.getUser().getId().equals(user.getId());
         boolean isDriver = order.getDriver() != null && order.getDriver().getId().equals(user.getId());
 
         if (!isAdmin && !isOwner && !isDriver) {
             throw new BusinessException("Accès non autorisé à cette commande.");
         }
-
         return toResponse(order);
     }
 
-    /**
-     * Toutes les commandes — ADMIN uniquement.
-     */
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    /**
-     * Commandes assignées au livreur connecté.
-     */
     public List<OrderResponse> getMyDeliveries(String email) {
         User driver = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Livreur introuvable."));
@@ -243,8 +193,13 @@ public class OrderService {
                 .stream().map(this::toResponse).toList();
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // Actions admin / livreur
+    // ══════════════════════════════════════════════════════════════════════════
+
     /**
      * ADMIN : assigner manuellement un livreur à une commande.
+     * Libère l'ancien livreur si la commande en avait déjà un.
      */
     @Transactional
     public OrderResponse assignDriver(Long orderId, Long driverId) {
@@ -253,24 +208,25 @@ public class OrderService {
         User driver = userRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Livreur introuvable : " + driverId));
 
-        // Libérer l'ancien livreur si existant
+        // Libère l'ancien livreur s'il y en a un
         if (order.getDriver() != null) {
-            User oldDriver = order.getDriver();
-            oldDriver.setStatutLivreur(StatutLivreur.DISPONIBLE);
-            userRepository.save(oldDriver);
+            assignationService.libererLivreurAnnulation(order.getDriver().getId());
         }
 
         order.setDriver(driver);
         order.setStatus(StatutCommande.PRISE_EN_CHARGE);
-        driver.setStatutLivreur(StatutLivreur.OCCUPE);
+        driver.setStatutLivreur(com.aurelia.backend.enums.StatutLivreur.OCCUPE);
         userRepository.save(driver);
 
-        log.info("Admin: livreur {} assigné manuellement à la commande #{}", driver.getEmail(), orderId);
+        log.info("Admin: livreur {} assigné manuellement à commande #{}", driver.getEmail(), orderId);
         return toResponse(orderRepository.save(order));
     }
 
     /**
-     * Mettre à jour le statut d'une commande.
+     * Met à jour le statut d'une commande.
+     *
+     * LIVREE  → libère le livreur (disponibleDepuis = now() → rentre dans la file FIFO).
+     * ANNULEE → remet les stocks en place + libère le livreur si assigné.
      */
     @Transactional
     public OrderResponse updateStatus(Long orderId, StatutCommande newStatus) {
@@ -279,35 +235,45 @@ public class OrderService {
 
         order.setStatus(newStatus);
 
-        // Si la commande est livrée → libérer le livreur
         if (newStatus == StatutCommande.LIVREE) {
-            if (order.getDriver() != null) {
-                User driver = order.getDriver();
-                driver.setStatutLivreur(StatutLivreur.DISPONIBLE);
-                userRepository.save(driver);
-            }
-            // Marquer comme payé si paiement cash
             order.setPaymentStatus(StatutPaiement.PAYE);
+            // Sauvegarde le statut LIVREE en BD AVANT de libérer le livreur
+            // Important : saveAndFlush garantit que le scheduler ne voit jamais
+            // une commande LIVREE avec l'ancien statut EN_LIVRAISON
+            orderRepository.saveAndFlush(order);
+            if (order.getDriver() != null) {
+                Long driverId = order.getDriver().getId();
+                // Libère le livreur APRÈS que LIVREE est commis en BD
+                assignationService.libererLivreur(driverId);
+            }
+            return toResponse(orderRepository.findById(orderId).orElse(order));
         }
 
-        // Si la commande est annulée → remettre les stocks + libérer livreur
         if (newStatus == StatutCommande.ANNULEE) {
+            // Remet les stocks
             for (OrderItem item : order.getItems()) {
                 Product product = item.getProduct();
-                product.setStock(product.getStock() + item.getQuantity());
-                productRepository.save(product);
+                if (product != null) {
+                    product.setStock(product.getStock() + item.getQuantity());
+                    productRepository.save(product);
+                }
             }
+            // Libère le livreur s'il y en a un
             if (order.getDriver() != null) {
-                User driver = order.getDriver();
-                driver.setStatutLivreur(StatutLivreur.DISPONIBLE);
-                userRepository.save(driver);
+                Long driverId = order.getDriver().getId();
+                order.setDriver(null);
+                orderRepository.saveAndFlush(order);
+                assignationService.libererLivreurAnnulation(driverId);
+                return toResponse(orderRepository.findById(orderId).orElse(order));
             }
         }
 
         return toResponse(orderRepository.save(order));
     }
 
-    // ── Mapper ───────────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    // Mapper
+    // ══════════════════════════════════════════════════════════════════════════
 
     public OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream()

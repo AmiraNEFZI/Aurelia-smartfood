@@ -9,14 +9,17 @@ import com.aurelia.backend.exception.BusinessException;
 import com.aurelia.backend.exception.ResourceNotFoundException;
 import com.aurelia.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DriverService {
 
     private final UserRepository userRepository;
@@ -24,6 +27,7 @@ public class DriverService {
 
     /**
      * Créer un compte livreur — réservé à l'admin.
+     * Le livreur démarre HORS_LIGNE et doit se mettre DISPONIBLE manuellement.
      */
     @Transactional
     public UserResponse createDriver(CreateDriverRequest request) {
@@ -39,6 +43,7 @@ public class DriverService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.LIVREUR)
                 .statutLivreur(StatutLivreur.HORS_LIGNE)
+                .disponibleDepuis(null)
                 .build();
 
         return toResponse(userRepository.save(driver));
@@ -54,6 +59,13 @@ public class DriverService {
 
     /**
      * Mettre à jour le statut de disponibilité du livreur connecté.
+     *
+     * Règles :
+     * - EN_LIGNE (déprécié) → remappé silencieusement vers DISPONIBLE.
+     * - Passage à DISPONIBLE → enregistre le timestamp disponibleDepuis (FIFO).
+     * - Passage à HORS_LIGNE ou OCCUPE → efface disponibleDepuis.
+     * - Un livreur OCCUPE ne peut pas se mettre DISPONIBLE lui-même
+     *   (la libération se fait automatiquement par le système à la livraison).
      */
     @Transactional
     public UserResponse updateStatus(String email, StatutLivreur newStatus) {
@@ -64,9 +76,41 @@ public class DriverService {
             throw new BusinessException("Cet utilisateur n'est pas un livreur.");
         }
 
-        // Le livreur peut changer son statut librement
+        // EN_LIGNE déprécié → remapper vers DISPONIBLE silencieusement
+        @SuppressWarnings("deprecation")
+        StatutLivreur effectiveStatus = (newStatus == StatutLivreur.EN_LIGNE)
+                ? StatutLivreur.DISPONIBLE
+                : newStatus;
+
+        // Un livreur OCCUPE ne peut pas se déclarer DISPONIBLE manuellement.
+        // Il peut se mettre HORS_LIGNE (déconnexion d'urgence autorisée).
+        if (driver.getStatutLivreur() == StatutLivreur.OCCUPE
+                && effectiveStatus == StatutLivreur.DISPONIBLE) {
+            throw new BusinessException(
+                "Vous êtes en cours de livraison. " +
+                "Le système vous remettra automatiquement DISPONIBLE après confirmation de la livraison.");
+        }
+
+        applyStatus(driver, effectiveStatus);
+        User saved = userRepository.save(driver);
+        log.info("Livreur {} → statut {} (disponibleDepuis={})",
+                saved.getEmail(), saved.getStatutLivreur(), saved.getDisponibleDepuis());
+        return toResponse(saved);
+    }
+
+    /**
+     * Applique le statut et gère le timestamp disponibleDepuis.
+     * Méthode package-private pour être réutilisée par AssignationService.
+     */
+    void applyStatus(User driver, StatutLivreur newStatus) {
         driver.setStatutLivreur(newStatus);
-        return toResponse(userRepository.save(driver));
+        if (newStatus == StatutLivreur.DISPONIBLE) {
+            // Enregistre le moment exact où le livreur devient disponible → FIFO précis
+            driver.setDisponibleDepuis(LocalDateTime.now());
+        } else {
+            // Efface le timestamp — le livreur n'est plus dans la file FIFO
+            driver.setDisponibleDepuis(null);
+        }
     }
 
     /**
@@ -82,7 +126,7 @@ public class DriverService {
         userRepository.delete(driver);
     }
 
-    private UserResponse toResponse(User user) {
+    public UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .firstName(user.getFirstName())
@@ -91,6 +135,7 @@ public class DriverService {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .statutLivreur(user.getStatutLivreur())
+                .active(user.getActive())
                 .build();
     }
 }

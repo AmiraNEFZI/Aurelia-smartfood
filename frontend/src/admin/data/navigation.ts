@@ -45,9 +45,7 @@ export const navigation: NavSection[] = [
         label: 'Utilisateurs',
         icon: Users,
         children: [
-          { label: 'Tous les comptes',   href: '/admin/crm/contacts' },
-          { label: 'Ajouter livreur',    href: '/admin/users/create-driver' },
-          { label: 'Ajouter admin',      href: '/admin/users/create-admin' },
+          { label: 'Tous les comptes', href: '/admin/crm/contacts' },
         ],
       },
       {

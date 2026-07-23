@@ -2,6 +2,7 @@ package com.aurelia.backend.config;
 
 import com.aurelia.backend.entity.Product;
 import com.aurelia.backend.entity.User;
+import com.aurelia.backend.enums.StatutLivreur;
 import com.aurelia.backend.repository.ProductRepository;
 import com.aurelia.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,29 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        migrateEnLigneStatus(); // DOIT être avant resetAllPasswords
         resetAllPasswords();
         initProducts();
+    }
+
+    /**
+     * Migration BD : convertit les statuts EN_LIGNE (déprécié) → DISPONIBLE.
+     * Safe et idempotente — ne fait rien s'il n'y a plus de EN_LIGNE en base.
+     */
+    @SuppressWarnings("deprecation")
+    private void migrateEnLigneStatus() {
+        List<User> livreursEnLigne = userRepository.findAll().stream()
+                .filter(u -> u.getStatutLivreur() == StatutLivreur.EN_LIGNE)
+                .toList();
+
+        if (livreursEnLigne.isEmpty()) return;
+
+        for (User u : livreursEnLigne) {
+            u.setStatutLivreur(StatutLivreur.DISPONIBLE);
+            userRepository.save(u);
+            log.info("✅ Migration EN_LIGNE → DISPONIBLE : {}", u.getEmail());
+        }
+        log.info("✅ Migration statuts livreurs terminée ({} compte(s) mis à jour)", livreursEnLigne.size());
     }
 
     /**
