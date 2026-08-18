@@ -19,7 +19,12 @@ server.port=8080
 # ── JWT ──────────────────────────────────────────────────────────────────────
 app.jwt.secret=SmartFoodAureliaSecretKey2024XYZ!@#$%^&*()_+ABCDEFabcdef123456
 app.jwt.expiration=86400000
-
+# ── Brevo transactional email / SMS ───────────────────────────────────────────
+brevo.api.key=YOUR_BREVO_API_KEY
+brevo.sender.email=hello@aurelia-smartfood.com
+brevo.sender.name=Aurelia SmartFood
+brevo.sender.sms=AURELIA
+brevo.sms.enabled=false
 # ── CORS (frontend React sur port 5173) ─────────────────────────────────────
 app.cors.allowed-origins=http://localhost:5173,http://127.0.0.1:5173
 

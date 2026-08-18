@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:8080/api'
+// API_BASE configurable via Vite env var `VITE_API_BASE`. Example for production:
+// VITE_API_BASE=https://api.myapp.com/api
+const API_BASE = (import.meta.env as any).VITE_API_BASE || 'http://localhost:8080/api'
 const BACKEND_ORIGIN = new URL(API_BASE).origin
 
 const api = axios.create({
@@ -85,10 +87,36 @@ export const cartApi = {
 
 // ── Orders ────────────────────────────────────────────────────────────────────
 export interface CheckoutPayload { address: string; paymentMethod: 'ESPECES' | 'CARTE_BANCAIRE' }
+export interface DriverReviewPayload { rating: number; comment?: string }
+export interface DriverReviewResponse { id: number; orderId: number; driverId: number; driverName: string; rating: number; comment?: string; createdAt: string }
+
+// Complaint (réclamation livreur)
+export type ComplaintCategory = 'RETARD_LIVRAISON' | 'COMPORTEMENT_INAPPROPRIE' | 'COLIS_ENDOMMAGE' | 'LIVRAISON_INCORRECTE' | 'AUTRE'
+export const COMPLAINT_CATEGORY_LABELS: Record<ComplaintCategory, string> = {
+  RETARD_LIVRAISON:         'Retard de livraison',
+  COMPORTEMENT_INAPPROPRIE: 'Comportement inapproprié',
+  COLIS_ENDOMMAGE:          'Colis endommagé',
+  LIVRAISON_INCORRECTE:     'Livraison incorrecte',
+  AUTRE:                    'Autre',
+}
+export interface ComplaintPayload { category: ComplaintCategory; description: string }
+export interface ComplaintResponse { id: number; orderId: number; driverId: number; driverName: string; clientName: string; category: ComplaintCategory; categoryLabel: string; description: string; status: string; createdAt: string }
+
 export const orderApi = {
   checkout: (data: CheckoutPayload) => api.post('/orders/checkout', data),
   getMyOrders: () => api.get('/orders/my'),
   getById: (id: number) => api.get(`/orders/${id}`),
+  submitReview: (orderId: number, data: DriverReviewPayload) => api.post<DriverReviewResponse>(`/orders/${orderId}/review`, data),
+  submitComplaint: (orderId: number, data: ComplaintPayload) => api.post<ComplaintResponse>(`/orders/${orderId}/complaint`, data),
+}
+
+// Admin drivers
+export const adminDriversApi = {
+  getReviewsSummary: () => api.get('/admin/drivers/reviews-summary'),
+  getComplaints: (driverId: number) => api.get<ComplaintResponse[]>(`/admin/drivers/${driverId}/complaints`),
+  getAllComplaints: () => api.get<ComplaintResponse[]>('/admin/complaints'),
+  suspend: (driverId: number, reason: string) => api.patch(`/admin/drivers/${driverId}/suspend`, { reason }),
+  reactivate: (driverId: number) => api.patch(`/admin/drivers/${driverId}/reactivate`),
 }
 
 // ── Admin Stats ───────────────────────────────────────────────────────────────
@@ -139,6 +167,46 @@ export const adminUsersApi = {
   createDriver: (data: CreateDriverPayload) => api.post('/admin/drivers', data),
   createAdmin: (data: CreateAdminPayload) => api.post('/admin/admins', data),
   deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+}
+
+export interface DriverApplicationPayload {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  documentUrl: string
+}
+
+export interface ApproveDriverApplicationPayload {
+  password?: string
+}
+
+export interface RejectDriverApplicationPayload {
+  reason: string
+}
+
+export interface DriverApplicationResponse {
+  id: number
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  documentUrl: string
+  rejectReason?: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  createdAt: string
+  updatedAt: string
+  temporaryPassword?: string
+}
+
+export const adminDriverApplicationsApi = {
+  getAll: (status?: string) => api.get<DriverApplicationResponse[]>('/admin/driver-applications', { params: status ? { status } : {} }),
+  approve: (id: number, data?: ApproveDriverApplicationPayload) => api.patch<DriverApplicationResponse>(`/admin/driver-applications/${id}/approve`, data || null),
+  reject: (id: number, data: RejectDriverApplicationPayload) => api.patch<DriverApplicationResponse>(`/admin/driver-applications/${id}/reject`, data),
+}
+
+export const driverApplicationsApi = {
+  submit: (data: DriverApplicationPayload) => api.post('/driver-applications', data),
 }
 
 // ── Partners ──────────────────────────────────────────────────────────────────

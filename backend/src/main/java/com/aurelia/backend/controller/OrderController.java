@@ -1,8 +1,13 @@
 package com.aurelia.backend.controller;
 
 import com.aurelia.backend.dto.request.CreateOrderRequest;
+import com.aurelia.backend.dto.request.SubmitComplaintRequest;
+import com.aurelia.backend.dto.request.SubmitDriverReviewRequest;
+import com.aurelia.backend.dto.response.DriverComplaintResponse;
+import com.aurelia.backend.dto.response.DriverReviewResponse;
 import com.aurelia.backend.dto.response.OrderResponse;
 import com.aurelia.backend.enums.StatutCommande;
+import com.aurelia.backend.service.DriverComplaintService;
 import com.aurelia.backend.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +29,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final DriverComplaintService complaintService;
 
     /**
      * CLIENT : passer une commande depuis son panier.
@@ -101,5 +107,32 @@ public class OrderController {
     public ResponseEntity<List<OrderResponse>> getMyDeliveries(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(orderService.getMyDeliveries(userDetails.getUsername()));
+    }
+
+    /**
+     * CLIENT : évaluer le livreur après livraison.
+     */
+    @PostMapping("/{id}/review")
+    @Operation(summary = "Évaluer le livreur après livraison")
+    public ResponseEntity<DriverReviewResponse> submitDriverReview(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody SubmitDriverReviewRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(orderService.submitDriverReview(id, userDetails.getUsername(), request));
+    }
+
+    /**
+     * CLIENT : signaler un problème avec le livreur après livraison.
+     * POST /api/orders/{id}/complaint
+     */
+    @PostMapping("/{id}/complaint")
+    @Operation(summary = "Signaler un problème avec le livreur")
+    public ResponseEntity<DriverComplaintResponse> submitComplaint(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody SubmitComplaintRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(complaintService.submitComplaint(id, userDetails.getUsername(), request));
     }
 }

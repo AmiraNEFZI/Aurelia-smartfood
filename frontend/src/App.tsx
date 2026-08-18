@@ -15,6 +15,7 @@ import { TestimonialPage } from '@/client/pages/TestimonialPage'
 import { ContactPage } from '@/client/pages/ContactPage'
 import { NotFoundPage } from '@/client/pages/NotFoundPage'
 import { ProfilePage } from '@/client/pages/ProfilePage'
+import { DriverReviewsPage } from '@/client/pages/DriverReviewsPage'
 
 // ── Admin layout & pages ───────────────────────────────────────────────────
 import { AdminLayout } from '@/admin/layouts/AdminLayout'
@@ -39,8 +40,11 @@ import { ProductsPage } from '@/admin/pages/products/ProductsPage'
 import { CreateDriverPage as CreateDriverPageOld } from '@/admin/pages/drivers/CreateDriverPage'
 import { CreateDriverPage } from '@/admin/pages/crm/CreateDriverPage'
 import { CreateAdminPage } from '@/admin/pages/crm/CreateAdminPage'
+import { DriverApplicationsPage } from '@/admin/pages/crm/DriverApplicationsPage'
+import { DriversSatisfactionPage } from '@/admin/pages/drivers/DriversSatisfactionPage'
 import { OrdersPage } from '@/admin/pages/orders/OrdersPage'
 import { PartnersPage } from '@/admin/pages/partners/PartnersPage'
+import { DriverApplicationPage } from '@/client/pages/DriverApplicationPage'
 
 export default function App() {
   useScrollToTop()
@@ -57,6 +61,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/reviews" element={<DriverReviewsPage />} />
         <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
         <Route path="/testimonials" element={<TestimonialPage />} />
         <Route path="/contact" element={<ContactPage />} />
@@ -67,6 +72,11 @@ export default function App() {
       <Route path="/admin/sign-in" element={<SignInPage />} />
       <Route path="/admin/sign-up" element={<SignUpPage />} />
       <Route path="/admin/forgot-password" element={<ForgotPasswordPage />} />
+
+      {/* ── Client public routes ── */}
+      <Route element={<ClientLayout />}>
+        <Route path="/driver/apply" element={<DriverApplicationPage />} />
+      </Route>
 
       {/* ── Admin routes ── */}
       <Route path="/admin" element={<AdminLayout />}>
@@ -81,12 +91,16 @@ export default function App() {
         <Route path="products/create" element={<CreateProductPage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="drivers/create" element={<CreateDriverPageOld />} />
+        <Route path="driver-applications" element={<DriverApplicationsPage />} />
+        <Route path="drivers/satisfaction" element={<DriversSatisfactionPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="partners" element={<PartnersPage />} />
         {/* CRM — create user pages */}
         <Route path="users/create-driver" element={<CreateDriverPage />} />
         <Route path="users/create-admin" element={<CreateAdminPage />} />
       </Route>
+
+      <Route path="/driver/apply" element={<DriverApplicationPage />} />
 
       {/* ── Driver routes ── */}
       <Route path="/driver" element={<DriverLayout />}>

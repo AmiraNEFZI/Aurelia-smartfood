@@ -8,6 +8,7 @@ import com.aurelia.backend.repository.OrderRepository;
 import com.aurelia.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +39,7 @@ public class AssignationExecutor {
     private final OrderRepository orderRepository;
     private final UserRepository  userRepository;
     private final DriverService   driverService;
+    private final BrevoService    brevoService;
 
     // ══════════════════════════════════════════════════════════════════════
     // Lectures isolées pour les schedulers (readOnly + REQUIRES_NEW)
@@ -110,18 +112,68 @@ public class AssignationExecutor {
             return false;
         }
 
-        // Assignation directe
-        order.setDriver(livreur);
-        order.setStatus(StatutCommande.PRISE_EN_CHARGE);
-        orderRepository.save(order); // @Version protège contre double-assignation
+        try {
+            order.setDriver(livreur);
+            order.setStatus(StatutCommande.PRISE_EN_CHARGE);
+            orderRepository.save(order); // @Version protège contre double-assignation
 
-        // Passe le livreur OCCUPE — disponibleDepuis mis à null (hors file FIFO)
-        driverService.applyStatus(livreur, StatutLivreur.OCCUPE);
-        userRepository.save(livreur);
+            // Passe le livreur OCCUPE — disponibleDepuis mis à null (hors file FIFO)
+            driverService.applyStatus(livreur, StatutLivreur.OCCUPE);
+            userRepository.save(livreur);
 
-        log.info("✅ Commande #{} assignée à {} (FIFO — disponible depuis {})",
-                orderId, livreur.getEmail(), livreur.getDisponibleDepuis());
-        return true;
+            log.info("✅ Commande #{} assignée à {} (FIFO — disponible depuis {})",
+                    orderId, livreur.getEmail(), livreur.getDisponibleDepuis());
+
+            notifyDriverAssignment(order, livreur);
+            return true;
+        } catch (OptimisticLockingFailureException ole) {
+            log.warn("Optimistic locking lors de l'assignation commande #{} : {}", orderId, ole.getMessage());
+            return false;
+        } catch (Exception e) {
+            log.error("Erreur lors de l'assignation commande #{} : {}", orderId, e.getMessage());
+            return false;
+        }
+    }
+
+    private void notifyDriverAssignment(Order order, User driver) {
+        if (order == null || driver == null) {
+            return;
+        }
+        String recipientName = driver.getFirstName() + " " + driver.getLastName();
+        String subject = "Nouvelle commande assignée : #" + order.getId();
+
+        String htmlContent = "<div style=\"font-family:Arial,Helvetica,sans-serif;background:#f3f7fb;color:#102a43;padding:24px;\">"
+                + "<div style=\"max-width:600px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 16px 35px rgba(16,42,67,0.12);\">"
+                + "<div style=\"background:#1f7a8c;color:#ffffff;padding:24px;text-align:center;\">"
+                + "<h1 style=\"margin:0;font-size:24px;\">Nouvelle commande assignée</h1>"
+                + "</div>"
+                + "<div style=\"padding:24px;\">"
+                + "<p style=\"margin:0 0 16px;font-size:16px;font-weight:600;color:#102a43;\">Bonjour " + recipientName + ",</p>"
+                + "<p style=\"margin:0 0 18px;font-size:14px;color:#334e68;line-height:1.6;\">Vous venez d'être assigné à une nouvelle commande.</p>"
+                + "<div style=\"background:#eef6fb;border-radius:14px;padding:18px;margin-bottom:20px;\">"
+                + "<p style=\"margin:0 0 10px;font-size:15px;color:#0b3c5d;font-weight:700;\">Commande #" + order.getId() + "</p>"
+                + "<p style=\"margin:0 0 6px;font-size:14px;color:#334e68;\"><strong>Client :</strong> "
+                + order.getUser().getFirstName() + " " + order.getUser().getLastName() + "</p>"
+                + "<p style=\"margin:0 0 6px;font-size:14px;color:#334e68;\"><strong>Adresse :</strong> " + order.getAddress() + "</p>"
+                + "<p style=\"margin:0;font-size:14px;color:#334e68;\"><strong>Total :</strong> " + order.getTotalAmount() + " DT</p>"
+                + "</div>"
+                + "<p style=\"margin:0;font-size:14px;color:#334e68;\">Merci d'apporter une livraison rapide et soignée.</p>"
+                + "</div></div></div>";
+
+        String textContent = "Bonjour " + recipientName + ",\n\n"
+                + "Vous avez été assigné à la commande #" + order.getId() + ".\n"
+                + "Client : " + order.getUser().getFirstName() + " " + order.getUser().getLastName() + "\n"
+                + "Adresse : " + order.getAddress() + "\n"
+                + "Total : " + order.getTotalAmount() + " DT\n\n"
+                + "Merci de prendre en charge cette livraison rapidement.";
+
+        try {
+            brevoService.sendEmail(driver.getEmail(), recipientName, subject, htmlContent, textContent);
+            brevoService.sendSms(driver.getPhone(),
+                    "Nouvelle commande #" + order.getId() + " assignée. Livraison à " + order.getAddress() + ".");
+        } catch (Exception e) {
+            log.warn("Notification livreur automatique échouée pour commande #{} : {}", order.getId(), e.getMessage());
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════

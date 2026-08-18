@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/client/context/AuthContext'
-import { orderApi } from '@/client/services/api'
+import { orderApi, type DriverReviewPayload } from '@/client/services/api'
 
 interface OrderSummary {
   id: number
@@ -35,8 +35,12 @@ export function ProfilePage() {
   const [orders, setOrders]               = useState<OrderSummary[]>([])
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null)
-  // ── NEW: historique masqué par défaut ──
   const [showHistory, setShowHistory]     = useState(false)
+  const [reviewingOrderId, setReviewingOrderId] = useState<number | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null)
+  const [reviewError, setReviewError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -47,6 +51,21 @@ export function ProfilePage() {
   }, [isAuthenticated])
 
   const handleLogout = () => { logout(); navigate('/') }
+
+  const handleSubmitReview = async (orderId: number) => {
+    setReviewError(null)
+    setReviewMessage(null)
+    try {
+      const payload: DriverReviewPayload = { rating: reviewRating, comment: reviewComment.trim() || undefined }
+      await orderApi.submitReview(orderId, payload)
+      setReviewMessage('Merci ! Votre évaluation a bien été enregistrée.')
+      setReviewingOrderId(null)
+      setReviewComment('')
+      setReviewRating(5)
+    } catch (err: any) {
+      setReviewError(err?.response?.data?.message || 'Impossible d’enregistrer votre évaluation pour le moment.')
+    }
+  }
 
   /* ── Non connecté ── */
   if (!isAuthenticated || !user) {
@@ -337,11 +356,11 @@ export function ProfilePage() {
                             <div className="d-flex align-items-center gap-3 p-3 flex-wrap"
                               style={{ cursor:'pointer' }}
                               onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                              <div className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                              <div className="d-flex align-items-center justify-content-center rounded-circle shrink-0"
                                 style={{ width:40, height:40, background:`${cfg.color}18` }}>
                                 <i className={`fas ${cfg.icon}`} style={{ color:cfg.color, fontSize:'1rem' }}></i>
                               </div>
-                              <div className="flex-grow-1">
+                              <div className="grow">
                                 <div className="d-flex align-items-center gap-2 flex-wrap">
                                   <span className="fw-bold" style={{ color:'#0b1f4e', fontSize:'0.95rem' }}>
                                     Commande #{order.id}
@@ -411,16 +430,76 @@ export function ProfilePage() {
                                 </div>
 
                                 {/* Footer */}
-                                <div className="d-flex justify-content-between align-items-center pt-2"
+                                <div className="d-flex justify-content-between align-items-center pt-2 flex-wrap gap-2"
                                   style={{ borderTop:'1px dashed #c7d7f8' }}>
                                   <span style={{ fontSize:'0.88rem', color:'#8898aa' }}>
                                     <i className="fas fa-money-bill-wave me-1" style={{ color:'#22c55e' }}></i>
                                     Paiement à la livraison
                                   </span>
-                                  <span className="fw-bold" style={{ color:'#0b1f4e', fontSize:'1rem' }}>
-                                    Total : {Number(order.totalAmount).toFixed(2)} DT
-                                  </span>
+                                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    <span className="fw-bold" style={{ color:'#0b1f4e', fontSize:'1rem' }}>
+                                      Total : {Number(order.totalAmount).toFixed(2)} DT
+                                    </span>
+                                    {order.status === 'LIVREE' && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-sm rounded-pill px-3"
+                                        style={{ background:'#f0f5ff', color:'#0b1f4e', border:'1px solid #c7d7f8' }}
+                                        onClick={() => setReviewingOrderId(reviewingOrderId === order.id ? null : order.id)}
+                                      >
+                                        <i className="fas fa-star me-2"></i>
+                                        {reviewingOrderId === order.id ? 'Fermer' : 'Noter le livreur'}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
+
+                                {order.status === 'LIVREE' && reviewingOrderId === order.id && (
+                                  <div className="mt-3 rounded-4 p-3" style={{ background:'linear-gradient(135deg,#f8fbff,#f3f7ff)', border:'1px solid #dce9f7' }}>
+                                    <div className="d-flex align-items-center gap-2 mb-2">
+                                      <i className="fas fa-star" style={{ color:'#f59e0b' }}></i>
+                                      <span className="fw-bold" style={{ color:'#0b1f4e' }}>Évaluer votre livraison</span>
+                                    </div>
+                                    <p className="mb-3" style={{ fontSize:'0.9rem', color:'#4b5563' }}>
+                                      Votre avis aide Aurelia Smart Food à maintenir un service fiable et professionnel.
+                                    </p>
+
+                                    <div className="d-flex gap-2 mb-3">
+                                      {[1,2,3,4,5].map(star => (
+                                        <button
+                                          key={star}
+                                          type="button"
+                                          className="btn btn-sm rounded-circle"
+                                          style={{ width:40, height:40, background: reviewRating >= star ? '#f59e0b' : '#fff', color: reviewRating >= star ? '#fff' : '#f59e0b', border:'1px solid #f59e0b' }}
+                                          onClick={() => setReviewRating(star)}
+                                        >
+                                          <i className="fas fa-star"></i>
+                                        </button>
+                                      ))}
+                                    </div>
+
+                                    <textarea
+                                      className="form-control mb-3"
+                                      rows={3}
+                                      placeholder="Partagez votre expérience avec le livreur..."
+                                      value={reviewComment}
+                                      onChange={e => setReviewComment(e.target.value)}
+                                      style={{ borderColor:'#dce9f7', borderRadius:'14px' }}
+                                    />
+
+                                    {reviewMessage && <div className="alert alert-success py-2 mb-3">{reviewMessage}</div>}
+                                    {reviewError && <div className="alert alert-danger py-2 mb-3">{reviewError}</div>}
+
+                                    <button
+                                      type="button"
+                                      className="btn rounded-pill px-4 fw-semibold"
+                                      style={{ background:'linear-gradient(135deg,#0b1f4e,#1f7a8c)', color:'#fff' }}
+                                      onClick={() => handleSubmitReview(order.id)}
+                                    >
+                                      <i className="fas fa-paper-plane me-2"></i>Envoyer l’évaluation
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

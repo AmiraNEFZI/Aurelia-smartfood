@@ -52,7 +52,9 @@ export const navigation: NavSection[] = [
         label: 'Livreurs',
         icon: Truck,
         children: [
-          { label: 'Liste livreurs', href: '/admin/crm/contacts' },
+          { label: 'Liste livreurs',      href: '/admin/crm/contacts' },
+          { label: 'Candidatures',        href: '/admin/driver-applications' },
+          { label: 'Satisfaction clients', href: '/admin/drivers/satisfaction' },
         ],
       },
       {

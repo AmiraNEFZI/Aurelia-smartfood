@@ -1,9 +1,12 @@
 package com.aurelia.backend.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     // Erreurs de validation (@Valid)
@@ -30,13 +34,27 @@ public class GlobalExceptionHandler {
     // Mauvais credentials (login)
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect", null);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect.", null);
+    }
+
+    // Compte suspendu (active=false)
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<Map<String, Object>> handleDisabled(DisabledException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN,
+                "Votre compte a été suspendu. Veuillez contacter l'administration.", null);
+    }
+
+    // Compte verrouillé
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<Map<String, Object>> handleLocked(LockedException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN,
+                "Votre compte est verrouillé. Veuillez contacter l'administration.", null);
     }
 
     // Accès refusé
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
-        return buildResponse(HttpStatus.FORBIDDEN, "Accès non autorisé", null);
+        return buildResponse(HttpStatus.FORBIDDEN, "Accès non autorisé.", null);
     }
 
     // Ressource introuvable
@@ -51,13 +69,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
-    // Erreur générique — log + message détaillé
+    // Erreur générique — log Slf4j (pas de printStackTrace en production)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        // Log complet pour debugging
-        ex.printStackTrace();
+        log.error("Erreur non gérée : {}", ex.getMessage(), ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                "Une erreur interne est survenue : " + ex.getMessage(), null);
+                "Une erreur interne est survenue.", null);
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(

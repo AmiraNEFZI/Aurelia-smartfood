@@ -66,55 +66,55 @@ export function CartPage() {
                   </div>
                   <div className="card-body p-0">
                     {items.map((item, idx) => (
-                      <div key={item.id} className={`d-flex align-items-center p-3 gap-3 ${idx < items.length - 1 ? 'border-bottom' : ''}`}>
-                        {/* Product image */}
-                        <img
-                          src={item.img || '/fruitables/img/hero-img-1.png'}
-                          alt={item.name}
-                          className="rounded"
-                          style={{ width: '75px', height: '75px', objectFit: 'cover', flexShrink: 0 }}
-                          onError={e => { e.currentTarget.src = '/fruitables/img/hero-img-1.png' }}
-                        />
+                      <div key={item.id} className={`p-3 ${idx < items.length - 1 ? 'border-bottom' : ''}`}>
+                        {/* Layout desktop : flex row / mobile : flex row compact */}
+                        <div className="d-flex align-items-start gap-3">
+                          {/* Image */}
+                          <img
+                            src={item.img || '/fruitables/img/hero-img-1.png'}
+                            alt={item.name}
+                            className="rounded flex-shrink-0"
+                            style={{ width: '64px', height: '64px', objectFit: 'cover' }}
+                            onError={e => { e.currentTarget.src = '/fruitables/img/hero-img-1.png' }}
+                          />
 
-                        {/* Product info */}
-                        <div className="flex-grow-1">
-                          <h6 className="fw-bold mb-1">{item.name}</h6>
-                          <span className="text-primary fw-bold">{item.price.toFixed(2)} DT</span>
+                          {/* Info + contrôles */}
+                          <div className="flex-grow-1 min-width-0">
+                            <div className="d-flex align-items-start justify-content-between gap-2 mb-2">
+                              <div>
+                                <h6 className="fw-bold mb-0" style={{ fontSize: '0.9rem' }}>{item.name}</h6>
+                                <span className="text-primary fw-bold" style={{ fontSize: '0.9rem' }}>{item.price.toFixed(2)} DT</span>
+                              </div>
+                              {/* Bouton supprimer — toujours visible en haut à droite */}
+                              <button
+                                className="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0"
+                                onClick={() => removeItem(item.id)}
+                                style={{ width: '30px', height: '30px', padding: 0 }}
+                                title="Supprimer"
+                              >
+                                <i className="fa fa-times" style={{ fontSize: '10px' }}></i>
+                              </button>
+                            </div>
+
+                            {/* Quantité + sous-total sur la même ligne */}
+                            <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                              <div className="input-group input-group-sm" style={{ width: '100px' }}>
+                                <button className="btn btn-sm btn-outline-secondary" onClick={() => updateQty(item.id, -1)}>
+                                  <i className="fa fa-minus" style={{ fontSize: '9px' }}></i>
+                                </button>
+                                <span className="form-control form-control-sm text-center border-secondary fw-bold" style={{ maxWidth: '36px' }}>
+                                  {item.quantity}
+                                </span>
+                                <button className="btn btn-sm btn-outline-secondary" onClick={() => updateQty(item.id, 1)}>
+                                  <i className="fa fa-plus" style={{ fontSize: '9px' }}></i>
+                                </button>
+                              </div>
+                              <span className="fw-bold text-dark" style={{ fontSize: '0.95rem' }}>
+                                {(item.price * item.quantity).toFixed(2)} DT
+                              </span>
+                            </div>
+                          </div>
                         </div>
-
-                        {/* Quantity controls */}
-                        <div className="input-group" style={{ width: '110px' }}>
-                          <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => updateQty(item.id, -1)}
-                          >
-                            <i className="fa fa-minus" style={{ fontSize: '10px' }}></i>
-                          </button>
-                          <span className="form-control form-control-sm text-center border-secondary fw-bold">
-                            {item.quantity}
-                          </span>
-                          <button
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => updateQty(item.id, 1)}
-                          >
-                            <i className="fa fa-plus" style={{ fontSize: '10px' }}></i>
-                          </button>
-                        </div>
-
-                        {/* Subtotal */}
-                        <div className="text-end" style={{ minWidth: '80px' }}>
-                          <p className="fw-bold text-dark mb-0">{(item.price * item.quantity).toFixed(2)} DT</p>
-                        </div>
-
-                        {/* Remove */}
-                        <button
-                          className="btn btn-sm btn-outline-danger rounded-circle"
-                          onClick={() => removeItem(item.id)}
-                          style={{ width: '32px', height: '32px', padding: 0 }}
-                          title="Supprimer"
-                        >
-                          <i className="fa fa-times" style={{ fontSize: '11px' }}></i>
-                        </button>
                       </div>
                     ))}
                   </div>

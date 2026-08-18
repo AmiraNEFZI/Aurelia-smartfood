@@ -25,6 +25,8 @@ Thumbs.db
 # ── Env / Secrets ────────────────────────────────
 .env
 .env.*
+.env.local
+backend/.env.local
 application-prod.properties
 
 # ── Documents temporaires (ne pas commiter) ──────

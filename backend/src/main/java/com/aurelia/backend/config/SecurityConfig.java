@@ -51,6 +51,7 @@ public class SecurityConfig {
                     "/api/auth/**",
                     "/api/products/**",
                     "/api/partners/availability/**",
+                    "/api/driver-applications",      // POST candidature livreur — public
                     "/uploads/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",

@@ -65,6 +65,14 @@ public class User {
     @Builder.Default
     private Boolean active = true;
 
+    /**
+     * Raison de suspension — renseignée par l'admin lors de la suspension.
+     * Null si le compte n'est pas suspendu.
+     * Colonne nullable → Hibernate l'ajoute sans toucher aux lignes existantes.
+     */
+    @Column(name = "suspension_reason", columnDefinition = "TEXT")
+    private String suspensionReason;
+
 
     // Relation 1-1 avec Cart (créé automatiquement à l'inscription du client)
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

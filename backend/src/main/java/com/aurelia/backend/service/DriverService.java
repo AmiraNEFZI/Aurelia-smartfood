@@ -49,6 +49,46 @@ public class DriverService {
         return toResponse(userRepository.save(driver));
     }
 
+    @Transactional
+    public UserResponse createDriverFromPasswordHash(String firstName, String lastName, String phone, String email, String passwordHash) {
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException("Un compte avec cet email existe déjà.");
+        }
+
+        User driver = User.builder()
+                .firstName(firstName)
+                .lastName(lastName)
+                .phone(phone)
+                .email(email)
+                .password(passwordHash)
+                .role(Role.LIVREUR)
+                .statutLivreur(StatutLivreur.HORS_LIGNE)
+                .disponibleDepuis(null)
+                .build();
+
+        return toResponse(userRepository.save(driver));
+    }
+
+    @Transactional
+    public UserResponse createDriverFromPlainPassword(String firstName, String lastName, String phone, String email, String password) {
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException("Un compte avec cet email existe déjà.");
+        }
+
+        User driver = User.builder()
+                .firstName(firstName)
+                .lastName(lastName)
+                .phone(phone)
+                .email(email)
+                .password(passwordEncoder.encode(password))
+                .role(Role.LIVREUR)
+                .statutLivreur(StatutLivreur.HORS_LIGNE)
+                .disponibleDepuis(null)
+                .build();
+
+        return toResponse(userRepository.save(driver));
+    }
+
     /**
      * Liste de tous les livreurs.
      */
